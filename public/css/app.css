@@ -312,7 +312,10 @@ details.bottle form { margin-top: 10px; }
 @media (max-width: 860px) {
   .topbar { padding: 10px 16px; gap: 8px; flex-wrap: wrap; }
   .brand .word { font-size: 16px; letter-spacing: .26em; }
-  .topnav, .who { display: none; }
+  .who { display: none; }
+  /* Section links stay visible on phones: their own full-width row under the brand */
+  .topnav { order: 5; width: 100%; margin: 2px 0 0; gap: 22px; overflow-x: auto; }
+  .topnav a { font-size: 14px; padding: 6px 0; white-space: nowrap; }
   #collect { order: 10; width: 100%; }
 
   .news { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
