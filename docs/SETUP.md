@@ -45,18 +45,23 @@ npx wrangler deploy
 
 部署完會見到網址，例如 `https://whiskytoday.<你嘅帳戶>.workers.dev`。**呢個時候未設定登入，任何人打開都只會見到 Forbidden，係正常嘅。**
 
-## 步驟 4：開 Cloudflare Access（只准指定 email 入）
+## 步驟 4：用 Cloudflare Access 只保護後台
 
-1. https://dash.cloudflare.com → 左邊 **Workers & Pages** → 撳 **whiskytoday**。
-2. 上面揀 **Access** 分頁（如果冇呢個分頁，就去 **Settings** → **Domains & Routes**）。
-3. 喺 `workers.dev` 嗰行撳 **Enable Cloudflare Access**。
-4. 「Choose who can sign in」揀 **Email**，逐個加入：你自己（Admin）同所有 Viewer 嘅 email。撳 **Save**。
-5. 之後要加 Viewer：同一位置撳 **Manage Cloudflare Access**，喺政策入面加 email 就得，唔使改程式。
+每日情報（`/`）係公開嘅，唔使登入；只有後台（`/admin`）同後台 API（`/api/admin`）要登入。
+
+1. https://dash.cloudflare.com → 左邊 **Zero Trust** → **Access controls** → **Applications** → **Create new application** → 揀 **Self-hosted and private**。
+2. **Application name**：`whiskytoday admin`。
+3. 撳 **Add public hostname**，Domain 填 `whiskytoday.<你嘅帳戶>.workers.dev`，**Path** 填 `admin`。
+4. 再撳一次 **Add public hostname**，同一個 Domain，**Path** 填 `api/admin`。
+5. **Policies** 加一個 Allow policy，揀 **Cloudflare account members**（只有你個 Cloudflare 帳戶登入到）。想俾其他 email 做 Admin，就另外加 **Emails** 規則。
+6. 撳 **Save**／**Create**。
+
+⚠️ 唔好喺 Worker 嘅 **Access** 分頁撳「Protect this Worker behind Access」，嗰個會連公開嘅每日情報都鎖埋。
 
 ### 4a. 抄兩個值俾 Worker
 
 - **Team domain**：dash 左邊 **Zero Trust** → **Settings** → 見到 **Team domain**，樣子係 `xxxx.cloudflareaccess.com`。
-- **AUD**：**Zero Trust** → **Access controls** → **Applications** → 撳 whiskytoday 嗰個 → 搵 **Application Audience (AUD) Tag**，撳旁邊複製。
+- **AUD**：**Zero Trust** → **Access controls** → **Applications** → 撳 **whiskytoday admin** 嗰個 → 搵 **Application Audience (AUD) Tag**，撳旁邊複製。
 
 ## 步驟 5：輸入密碼類設定（你自己喺 Terminal 打）
 
@@ -116,5 +121,5 @@ npx wrangler secret put DIGEST_FROM
 - [ ] 同一事件唔重複出現（詳細頁「來源」分頁列晒多個來源）
 - [ ] 投資者焦點篩選正確
 - [ ] 簡報準時寄出
-- [ ] 未登入打開 `/` 同 `/admin` 被擋
-- [ ] Viewer 睇到新聞，但開 `/admin` 同寫入 API 得 403
+- [ ] 未登入打開 `/` 睇到新聞；打開 `/admin` 被擋
+- [ ] 未登入呼叫 `/api/admin/*` 得 403
