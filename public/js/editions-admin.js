@@ -87,7 +87,7 @@ async function openEditor(id, listPanel, tab = 'info') {
   const data = id ? await api(`admin/editions/${encodeURIComponent(id)}`) : null;
   const e = data?.edition || {};
   dialogShell(id ? (e.name_zh || e.name_en) : '新增酒款');
-  const tabs = id ? [['info', '資料'], ['prices', '價格'], ['returns', '回報及投資卡'], ['bottles', '單瓶'], ['media', '相片／證書'], ['news', '相關新聞']] : [['info', '資料']];
+  const tabs = id ? [['info', '資料'], ['prices', '價格'], ['returns', '回報及投資卡'], ['ratings', '網上評分'], ['bottles', '單瓶'], ['media', '相片／證書'], ['news', '相關新聞']] : [['info', '資料']];
   $('ed-tabs').innerHTML = tabs.map(([k, l]) => `<button type="button" role="tab" data-t="${k}" aria-selected="${k === tab}">${l}</button>`).join('');
   const reopen = (t) => openEditor(id, listPanel, t);
   const done = async (t) => { await renderEditions(listPanel); if (id) reopen(t); };
@@ -95,6 +95,7 @@ async function openEditor(id, listPanel, tab = 'info') {
     info: () => renderInfo(e, id, listPanel),
     prices: () => renderPrices(data, id, done),
     returns: () => renderReturns(data),
+    ratings: () => renderRatings(data, id, done),
     bottles: () => renderBottles(data, id, done),
     media: () => renderMedia(data, id, done),
     news: () => renderNews(data),
@@ -273,6 +274,42 @@ function renderReturns(data) {
     </div>`;
   if (rows.length) signedBars($('rchart'), rows, { fmt: (v) => `${(v * 100).toFixed(1)}%`, height: 240, ariaLabel: '持有回報' });
   else $('rchart').innerHTML = '<p class="note">需要最少兩年唔同年份嘅成交，加上近 12 個月有成交，先計到回報。</p>';
+}
+
+const RATING_SOURCES = [['Whiskybase', 100], ['Whisky Advocate', 100], ['Whiskyfun', 100], ['Distiller', 100], ['Whisky Bible (Jim Murray)', 100],
+  ['Whisky Magazine', 10], ['IWSC', 100], ['San Francisco World Spirits Competition', 100], ['World Whiskies Awards', 100]];
+
+function renderRatings(data, id, done) {
+  const r = data.ratings || [];
+  $('ed-body').innerHTML = `
+    <p class="note">喺網上搵到嘅評分或者獎項，連埋來源連結一齊記低，前台會同我哋自己嘅評分並排顯示。為免違反網站條款，系統唔會自動抓取（例如 Whiskybase 唔准程式讀取），請你自己輸入。</p>
+    <form id="r-form" class="inline">
+      <input class="field" name="source" list="r-sources" placeholder="來源，例如 Whiskybase" required>
+      <datalist id="r-sources">${RATING_SOURCES.map(([n]) => `<option>${esc(n)}</option>`).join('')}</datalist>
+      <input class="field" name="score" placeholder="分數" inputmode="decimal" style="max-width:80px">
+      <input class="field" name="scale" placeholder="滿分" value="100" inputmode="decimal" style="max-width:70px">
+      <input class="field" name="votes" placeholder="評分人數" inputmode="numeric" style="max-width:100px">
+      <input class="field" name="award" placeholder="獎項（可留空）" style="max-width:130px">
+      <input class="field" name="url" type="url" placeholder="來源連結 https://…">
+      <input class="field" name="rated_at" type="date" style="max-width:150px">
+      <button class="btn solid">新增</button>
+    </form>
+    <div class="table-wrap"><table><thead><tr><th>來源</th><th class="num">分數</th><th class="num">人數</th><th>獎項</th><th>查閱日期</th><th>公開</th><th></th></tr></thead>
+      <tbody>${r.map((x) => `<tr><td>${x.url ? `<a href="${safeUrl(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.source)} ↗</a>` : esc(x.source)}</td>
+        <td class="num">${x.score != null ? `${x.score} / ${x.scale}` : '—'}</td><td class="num">${x.votes ?? ''}</td><td>${esc(x.award || '')}</td><td>${esc(x.rated_at || '')}</td>
+        <td><input type="checkbox" class="switch" data-rpub="${esc(x.id)}" ${x.is_public ? 'checked' : ''} aria-label="公開"></td>
+        <td><button class="btn small" data-rdel="${esc(x.id)}">刪除</button></td></tr>`).join('') || '<tr><td colspan="7">未有網上評分</td></tr>'}</tbody></table></div>`;
+  const form = $('r-form');
+  form.elements.source.oninput = () => {
+    const hit = RATING_SOURCES.find(([n]) => n === form.elements.source.value);
+    if (hit) form.elements.scale.value = hit[1];
+  };
+  form.onsubmit = async (ev) => {
+    ev.preventDefault();
+    try { await api(`admin/editions/${encodeURIComponent(id)}/ratings`, { method: 'POST', body: Object.fromEntries(new FormData(form)) }); toast('已新增'); done('ratings'); } catch (err) { toast(err.message); }
+  };
+  $('ed-body').querySelectorAll('[data-rpub]').forEach((c) => { c.onchange = () => api(`admin/ratings/${encodeURIComponent(c.dataset.rpub)}`, { method: 'PATCH', body: { is_public: c.checked } }).then(() => toast(c.checked ? '已設為公開' : '已設為私人')); });
+  $('ed-body').querySelectorAll('[data-rdel]').forEach((b) => { b.onclick = async () => { if (!window.confirm('刪除呢個評分？')) return; await api(`admin/ratings/${encodeURIComponent(b.dataset.rdel)}`, { method: 'DELETE' }); done('ratings'); }; });
 }
 
 function renderBottles(data, id, done) {

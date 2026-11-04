@@ -281,6 +281,30 @@ details.bottle form { margin-top: 10px; }
 .media-grid .pdf { display: grid; place-items: center; height: 150px; color: var(--gold); text-decoration: none; }
 .media-grid figcaption { padding: 6px 8px; font-size: 12px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 
+/* Public catalogue */
+.whisky-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.wcard { flex-direction: row; gap: 12px; align-items: stretch; padding: 10px; }
+.wcard img, .wph { width: 72px; flex: 0 0 72px; object-fit: cover; border-radius: 2px; background: var(--bg-sunk); }
+.wph { display: grid; place-items: center; font-family: var(--serif); color: var(--gold); letter-spacing: .1em; font-size: 14px; border: 1px solid var(--gold-faint); }
+.wph.big { width: 100%; height: 220px; flex: none; font-size: 20px; letter-spacing: .3em; }
+.wbody { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+.wcard h2 { font-size: 16px; -webkit-line-clamp: 1; flex-shrink: 0; }
+.wcard p { flex-shrink: 0; }
+.wcard .meta { margin-top: 0; flex-shrink: 0; }
+.wscore { font-family: var(--serif); font-size: 18px; color: var(--ivory); }
+.wscore small { color: var(--faint); font-size: 11px; }
+.wdetail { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 20px; }
+.wgallery { display: flex; flex-direction: column; gap: 8px; }
+.wgallery img { width: 100%; max-height: 360px; object-fit: contain; background: var(--bg-sunk); border-radius: 2px; }
+.rating-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 6px; }
+.rbox { border: 1px solid var(--gold-faint); border-radius: var(--radius); padding: 8px 12px; min-width: 120px; }
+.rbox.own { border-color: var(--gold-dim); background: var(--gold-faint); }
+.rbox .l { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.rbox .l a { color: var(--gold); text-decoration: none; }
+.rbox .big { font-family: var(--serif); font-size: 28px; }
+.rbox small { color: var(--faint); }
+.w-foot { padding: 6px 24px 12px; margin: 0; }
+
 .admin-link { color: var(--muted); font-size: 13px; text-decoration: none; letter-spacing: .06em; }
 .admin-link:hover { color: var(--gold); }
 
@@ -339,6 +363,9 @@ details.bottle form { margin-top: 10px; }
   .trends .stat .n { display: none; }
   #print { display: none; }
   .admin { padding: 10px 16px; }
+  .whisky-cards { grid-template-columns: 1fr; }
+  .wdetail { grid-template-columns: 1fr; }
+  .wph.big { height: 120px; }
   .grid-form { grid-template-columns: 1fr 1fr; }
   .grid-form fieldset { grid-template-columns: repeat(3, 1fr); }
   dialog.wide { width: 100vw; height: 100dvh; }

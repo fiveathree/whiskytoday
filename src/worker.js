@@ -45,6 +45,7 @@ export default {
     if (path === '/admin' || path === '/admin/') return page(env, request, '/admin');
     if (path === '/') return page(env, request, '/');
     if (path === '/trends') return page(env, request, '/trends');
+    if (path === '/whisky') return page(env, request, '/whisky');
     return new Response('Not found', { status: 404 });
   },
 

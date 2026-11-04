@@ -5,6 +5,7 @@ import { runCollection } from './news.js';
 import { sendDigest } from './digest.js';
 import { CATEGORIES } from './rules.js';
 import { editionsRoute } from './editions.js';
+import { listCatalog, getCatalogItem, getPublicMedia } from './catalog.js';
 
 const PAGE_SIZE = 10;
 const REGIONS = ['scotland', 'japan', 'usa', 'taiwan', 'hk_china', 'ireland', 'other'];
@@ -20,6 +21,9 @@ export async function handleApi(request, env, ctx, user, url) {
     if (parts[0] === 'news' && method === 'GET' && !parts[1]) return listNews(env, url);
     if (parts[0] === 'news' && method === 'GET' && parts[1]) return getNews(env, parts[1]);
     if (parts[0] === 'trends' && method === 'GET') return getTrends(env);
+    if (parts[0] === 'whisky' && method === 'GET' && !parts[1]) return listCatalog(env, url);
+    if (parts[0] === 'whisky' && method === 'GET' && parts[1]) return getCatalogItem(env, decodeURIComponent(parts[1]));
+    if (parts[0] === 'whisky-media' && method === 'GET' && parts[1]) return getPublicMedia(env, parts[1]);
 
     if (parts[0] === 'admin') {
       if (user?.role !== 'admin') return json({ error: 'forbidden' }, 403);

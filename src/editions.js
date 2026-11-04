@@ -104,7 +104,7 @@ async function listEditions(env, url) {
 async function getEdition(env, id) {
   const e = await env.DB.prepare('SELECT * FROM editions WHERE id = ?').bind(id).first();
   if (!e) return json({ error: 'not found' }, 404);
-  const [bottles, prices, media, scores, news] = await Promise.all([
+  const [bottles, prices, media, scores, news, ratings] = await Promise.all([
     env.DB.prepare('SELECT * FROM bottles WHERE edition_id = ? ORDER BY created_at').bind(id).all(),
     env.DB.prepare('SELECT * FROM prices WHERE edition_id = ? ORDER BY observed_at').bind(id).all(),
     env.DB.prepare('SELECT id, bottle_id, kind, is_public, caption, content_type FROM media WHERE edition_id = ?').bind(id).all(),
@@ -114,6 +114,7 @@ async function getEdition(env, id) {
        FROM article_entities ae JOIN articles a ON a.id = ae.article_id
        WHERE a.status = 'published' AND ae.entity_id IN (?, ?) ORDER BY d DESC LIMIT 12`,
     ).bind(e.distillery_id || '', e.brand_id || '').all(),
+    env.DB.prepare('SELECT * FROM ratings WHERE edition_id = ? ORDER BY created_at').bind(id).all(),
   ]);
   const convert = await loadConverter(env, prices.results.map((p) => p.currency));
   const pricesOut = prices.results.map((p) => ({ ...p, hkd_minor: convert(p.amount_minor, p.currency, p.observed_at) }));
@@ -126,7 +127,7 @@ async function getEdition(env, id) {
   const score = scores.results[0] || null;
   let inputs = null;
   try { inputs = score ? JSON.parse(score.inputs_json) : null; } catch { /* ignore */ }
-  return json({ edition: e, bottles: bottles.results, prices: pricesOut, media: media.results, score, card: inputs?.card || null, news: news.results });
+  return json({ edition: e, bottles: bottles.results, prices: pricesOut, media: media.results, score, card: inputs?.card || null, news: news.results, ratings: ratings.results });
 }
 
 async function saveEdition(env, id, b) {
@@ -159,6 +160,7 @@ async function deleteEdition(env, id) {
   for (const m of media) await env.MEDIA?.delete(m.r2_key);
   await env.DB.batch([
     env.DB.prepare('DELETE FROM scores WHERE edition_id = ?').bind(id),
+    env.DB.prepare('DELETE FROM ratings WHERE edition_id = ?').bind(id),
     env.DB.prepare('DELETE FROM prices WHERE edition_id = ?').bind(id),
     env.DB.prepare('DELETE FROM media WHERE edition_id = ?').bind(id),
     env.DB.prepare('DELETE FROM bottles WHERE edition_id = ?').bind(id),
@@ -245,6 +247,25 @@ async function getMedia(env, id) {
   return new Response(obj.body, { headers: { 'content-type': m.content_type || 'application/octet-stream', 'cache-control': 'private, no-store' } });
 }
 
+// Third-party ratings, typed in by the admin with a link to the source.
+async function addRating(env, editionId, b) {
+  if (!await env.DB.prepare('SELECT 1 FROM editions WHERE id = ?').bind(editionId).first()) return json({ error: 'not found' }, 404);
+  const source = String(b.source || '').trim().slice(0, 60);
+  if (!source) return json({ error: '請填來源' }, 400);
+  const score = b.score === '' || b.score == null ? null : Number(b.score);
+  const scale = b.scale === '' || b.scale == null ? 100 : Number(b.scale);
+  const award = String(b.award || '').trim().slice(0, 60) || null;
+  if (score == null && !award) return json({ error: '請填分數或獎項' }, 400);
+  if (score != null && (!Number.isFinite(score) || !Number.isFinite(scale) || scale <= 0 || score < 0 || score > scale)) return json({ error: '分數要喺 0 至滿分之間' }, 400);
+  const url = String(b.url || '').trim();
+  if (url && !/^https?:\/\//i.test(url)) return json({ error: '連結要以 http 開頭' }, 400);
+  const votes = b.votes === '' || b.votes == null ? null : Math.max(0, Math.round(Number(b.votes)) || 0);
+  const rated = /^\d{4}-\d{2}-\d{2}$/.test(String(b.rated_at || '')) ? b.rated_at : new Date().toISOString().slice(0, 10);
+  await env.DB.prepare('INSERT INTO ratings (id, edition_id, source, score, scale, votes, award, url, rated_at, is_public, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(uid(), editionId, source, score, scale, votes, award, url || null, rated, b.is_public === false ? 0 : 1, nowIso()).run();
+  return json({ ok: true });
+}
+
 // §5 settings page values used in phase 2.
 async function saveSettings(env, b) {
   const stmts = [];
@@ -295,6 +316,16 @@ export async function editionsRoute(request, env, p, url) {
       env.DB.prepare('UPDATE media SET bottle_id = NULL WHERE bottle_id = ?').bind(p[1]),
       env.DB.prepare('DELETE FROM bottles WHERE id = ?').bind(p[1]),
     ]);
+    return json({ ok: true });
+  }
+  if (p[0] === 'editions' && p[2] === 'ratings' && m === 'POST') return addRating(env, p[1], await body(request));
+  if (p[0] === 'ratings' && p[1] && m === 'PATCH') {
+    const b = await body(request);
+    await env.DB.prepare('UPDATE ratings SET is_public = ? WHERE id = ?').bind(b.is_public ? 1 : 0, p[1]).run();
+    return json({ ok: true });
+  }
+  if (p[0] === 'ratings' && p[1] && m === 'DELETE') {
+    await env.DB.prepare('DELETE FROM ratings WHERE id = ?').bind(p[1]).run();
     return json({ ok: true });
   }
   if (p[0] === 'prices' && p[1] === 'import' && m === 'POST') return importPrices(env, await body(request));
