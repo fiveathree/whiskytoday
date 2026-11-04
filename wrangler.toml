@@ -1,0 +1,34 @@
+name = "whiskytoday"
+main = "src/worker.js"
+compatibility_date = "2026-10-01"
+
+# Static files in /public. The Worker runs first so it can check Access on HTML pages.
+[assets]
+directory = "public"
+binding = "ASSETS"
+run_worker_first = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "whiskytoday"
+database_id = "a5c375c3-a8d3-4c2e-8be6-b92ba096e921"
+migrations_dir = "migrations"
+
+# 07:00 and 19:00 Hong Kong / Taipei time
+[triggers]
+crons = ["0 23 * * *", "0 11 * * *"]
+
+# Daily briefing email (Email Routing). Destination must be a verified address.
+[[send_email]]
+name = "EMAIL"
+
+[observability]
+enabled = true
+
+# Secrets (set with `npx wrangler secret put <NAME>`, never commit):
+#   ANTHROPIC_API_KEY  Claude API key
+#   ACCESS_TEAM_DOMAIN e.g. yourteam.cloudflareaccess.com
+#   ACCESS_AUD         Application Audience (AUD) tag of the Access application
+#   ADMIN_EMAILS       comma-separated admin emails
+#   DIGEST_TO          verified destination address for the daily briefing
+#   DIGEST_FROM        sender address on your Email Routing domain

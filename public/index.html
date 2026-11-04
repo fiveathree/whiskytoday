@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Whisky Today · 每日情報</title>
+<meta name="description" content="私人高端威士忌情報">
+<meta property="og:title" content="Whisky Today">
+<meta property="og:description" content="Private whisky intelligence">
+<meta property="og:image" content="/og.png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@500&display=swap">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <a class="brand" href="/"><span class="word">WHISKY TODAY</span><span class="rule"></span></a>
+    <nav class="topnav">
+      <a href="/" aria-current="page" data-i18n="nav.news">每日情報</a>
+      <a href="/admin" id="nav-admin" class="hidden" data-i18n="nav.admin">後台</a>
+    </nav>
+    <span class="spacer"></span>
+    <button class="mine-bar" id="mine-bar" type="button"><span data-i18n="mine.bar">影響你追蹤的酒</span>（<b id="mine-count">0</b>）</button>
+    <button class="lang" id="lang" type="button">EN</button>
+    <span class="who" id="who"></span>
+  </header>
+
+  <div class="news">
+    <aside class="filters">
+      <section>
+        <h3 data-i18n="f.view">檢視</h3>
+        <div class="seg" id="f-view">
+          <button type="button" data-v="" aria-pressed="true" data-i18n="view.all">全部</button>
+          <button type="button" data-v="investor" aria-pressed="false" data-i18n="view.investor">投資者焦點</button>
+          <button type="button" data-v="mine" aria-pressed="false" data-i18n="view.mine">影響我的酒</button>
+        </div>
+      </section>
+      <section>
+        <h3 data-i18n="f.region">地區</h3>
+        <select class="field" id="f-region"></select>
+      </section>
+      <section>
+        <h3 data-i18n="f.category">類別</h3>
+        <select class="field" id="f-category"></select>
+      </section>
+      <section>
+        <h3 data-i18n="f.date">日期</h3>
+        <div class="dates">
+          <input class="field" type="date" id="f-from" aria-label="From">
+          <input class="field" type="date" id="f-to" aria-label="To">
+        </div>
+      </section>
+    </aside>
+
+    <main class="main">
+      <div class="main-head">
+        <h1 id="page-title" data-i18n="title.news">每日全球情報</h1>
+        <span class="count" id="count"></span>
+        <input class="field search" type="search" id="q" data-i18n-ph="search" placeholder="搜尋新聞…">
+      </div>
+      <div class="cards" id="cards" aria-live="polite"></div>
+      <div class="pager">
+        <button class="btn small" id="prev" type="button" data-i18n="prev">上一頁</button>
+        <span id="pageinfo"></span>
+        <button class="btn small" id="next" type="button" data-i18n="next">下一頁</button>
+      </div>
+    </main>
+  </div>
+</div>
+
+<dialog id="detail" aria-labelledby="d-title">
+  <div class="dlg">
+    <div class="dlg-head">
+      <h2 id="d-title"></h2>
+      <button class="close" type="button" id="d-close" aria-label="Close">×</button>
+    </div>
+    <div class="dlg-tabs" role="tablist" id="d-tabs">
+      <button type="button" role="tab" data-tab="summary" aria-selected="true" data-i18n="tab.summary">摘要</button>
+      <button type="button" role="tab" data-tab="investor" aria-selected="false" data-i18n="tab.investor">投資者分析</button>
+      <button type="button" role="tab" data-tab="sources" aria-selected="false" data-i18n="tab.sources">來源</button>
+    </div>
+    <div class="dlg-body" id="d-body"></div>
+  </div>
+</dialog>
+
+<script type="module" src="/js/news.js"></script>
+</body>
+</html>

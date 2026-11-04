@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Whisky Today · 後台</title>
+<meta property="og:title" content="Whisky Today">
+<meta property="og:description" content="Private whisky intelligence">
+<meta property="og:image" content="/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@500&display=swap">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <a class="brand" href="/"><span class="word">WHISKY TODAY</span><span class="rule"></span></a>
+    <nav class="topnav">
+      <a href="/">每日情報</a>
+      <a href="/admin" aria-current="page">後台</a>
+    </nav>
+    <span class="spacer"></span>
+    <span class="who" id="who"></span>
+  </header>
+
+  <div class="admin">
+    <div class="tabs" role="tablist" id="tabs">
+      <button type="button" role="tab" data-tab="jobs" aria-selected="true">工作紀錄</button>
+      <button type="button" role="tab" data-tab="sources" aria-selected="false">新聞來源</button>
+      <button type="button" role="tab" data-tab="tracked" aria-selected="false">追蹤酒廠／品牌</button>
+      <button type="button" role="tab" data-tab="unmatched" aria-selected="false">未配對名稱</button>
+    </div>
+    <section class="panel" id="panel"></section>
+  </div>
+</div>
+<script type="module" src="/js/admin.js"></script>
+</body>
+</html>
