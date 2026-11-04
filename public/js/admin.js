@@ -1,5 +1,6 @@
 // Admin page: job log, sources, tracked entities, unmatched names (PLAN.md §4.6, §11 phase 1 step 4).
 import { esc, safeUrl, api, fmtDate, toast, initTheme, REGION } from './common.js';
+import { renderEditions, renderSettings } from './editions-admin.js';
 
 const $ = (id) => document.getElementById(id);
 const panel = $('panel');
@@ -32,7 +33,7 @@ async function renderJobs() {
     <div class="table-wrap"><table>
       <thead><tr><th>工作</th><th>開始</th><th>狀態</th><th class="num">新增</th><th class="num">AI 處理</th><th class="num">成本</th><th>錯誤</th></tr></thead>
       <tbody>${d.jobs.map((j) => `<tr>
-        <td>${{ collect: '收集新聞', digest: '每日簡報', trade: '出口數據' }[j.job] || esc(j.job)}</td>
+        <td>${{ collect: '收集新聞', digest: '每日簡報', trade: '出口數據', fx: '匯率', rescore: '重算評分' }[j.job] || esc(j.job)}</td>
         <td>${esc(fmtDate(j.started_at))}</td>
         <td class="${j.status === 'ok' ? 'ok' : j.status === 'running' ? '' : 'bad'}">${esc(j.status)}</td>
         <td class="num">${j.items_found ?? ''}</td><td class="num">${j.items_processed ?? ''}</td>
@@ -133,7 +134,7 @@ async function renderUnmatched() {
   });
 }
 
-const RENDER = { jobs: renderJobs, sources: renderSources, tracked: () => renderTracked(), unmatched: renderUnmatched };
+const RENDER = { editions: () => renderEditions(panel), settings: () => renderSettings(panel), jobs: renderJobs, sources: renderSources, tracked: () => renderTracked(), unmatched: renderUnmatched };
 
 function show(t) {
   tab = t;
@@ -151,4 +152,4 @@ panel.addEventListener('click', (e) => {
 });
 api('admin/me').then((me) => { $('who').textContent = me.email; }).catch(() => {});
 initTheme($('theme'));
-show('jobs');
+show('editions');

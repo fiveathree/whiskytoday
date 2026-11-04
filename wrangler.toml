@@ -18,6 +18,11 @@ migrations_dir = "migrations"
 [triggers]
 crons = ["0 16 * * *", "0 23 * * *", "0 11 * * *"]
 
+# Bottle photos and certificates (private bucket; public files are served by the Worker after an is_public check)
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "whiskytoday-media"
+
 # Daily briefing email (Email Routing). Destination must be a verified address.
 [[send_email]]
 name = "EMAIL"

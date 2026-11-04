@@ -152,3 +152,64 @@ export function stackedChart(host, labels, series, { fmt = (v) => v, xFmt = (v) 
 export function legend(host, series) {
   host.innerHTML = series.map((s) => `<span class="viz-key"><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('');
 }
+
+// Irregular dates: series [{ name, color, points: [{ t: ms, y, label }] }], lines join each series' points.
+export function timeChart(host, series, { fmt = (v) => v, height, ariaLabel = '' } = {}) {
+  const { svg, w, h } = frame(host, height);
+  svg.setAttribute('aria-label', ariaLabel);
+  const pts = series.flatMap((s) => s.points);
+  if (!pts.length) return;
+  const m = { l: 58, r: 12, t: 10, b: 24 };
+  let t0 = Math.min(...pts.map((p) => p.t));
+  let t1 = Math.max(...pts.map((p) => p.t));
+  if (t1 === t0) { t0 -= 86400_000 * 30; t1 += 86400_000 * 30; }
+  const max = niceMax(Math.max(...pts.map((p) => p.y)));
+  const x = (t) => m.l + ((t - t0) / (t1 - t0)) * (w - m.l - m.r);
+  const y = (v) => h - m.b - (v / max) * (h - m.t - m.b);
+  yAxis(svg, m.l, w - m.r, y, max, 4, fmt);
+  for (let yr = new Date(t0).getUTCFullYear() + 1; yr <= new Date(t1).getUTCFullYear(); yr++) {
+    const tx = x(Date.UTC(yr, 0, 1));
+    el('text', { x: tx, y: h - 6, 'text-anchor': 'middle', class: 'viz-tick' }, svg).textContent = String(yr);
+  }
+  for (const s of series) {
+    const sorted = [...s.points].sort((a, b) => a.t - b.t);
+    if (s.line !== false && sorted.length > 1) {
+      el('polyline', { points: sorted.map((p) => `${x(p.t)},${y(p.y)}`).join(' '), fill: 'none', stroke: s.color, 'stroke-width': 2, 'stroke-linejoin': 'round' }, svg);
+    }
+    for (const p of sorted) {
+      const c = el('circle', { cx: x(p.t), cy: y(p.y), r: 4.5, fill: s.color, stroke: 'var(--bg-raise)', 'stroke-width': 2 }, svg);
+      const hit = el('circle', { cx: x(p.t), cy: y(p.y), r: 11, fill: 'transparent' }, svg);
+      hit.addEventListener('pointermove', (ev) => showTip(`<div class="viz-tip-h">${esc(new Date(p.t).toISOString().slice(0, 10))}</div><div><i style="background:${s.color}"></i>${esc(s.name)}<b>${esc(fmt(p.y))}</b></div>${p.label ? `<div>${esc(p.label)}</div>` : ''}`, ev.clientX, ev.clientY));
+      hit.addEventListener('pointerleave', hideTip);
+      c.setAttribute('pointer-events', 'none');
+    }
+  }
+}
+
+// Columns that may be negative (e.g. annualised returns). rows: [{ label, value, note }]
+export function signedBars(host, rows, { fmt = (v) => v, pos = 'var(--bull)', neg = 'var(--bear)', height, ariaLabel = '' } = {}) {
+  const { svg, w, h } = frame(host, height);
+  svg.setAttribute('aria-label', ariaLabel);
+  if (!rows.length) return;
+  const m = { l: 44, r: 8, t: 16, b: 24 };
+  const maxAbs = niceMax(Math.max(...rows.map((r) => Math.abs(r.value)), 0.01));
+  const hasNeg = rows.some((r) => r.value < 0);
+  const lo = hasNeg ? -maxAbs : 0;
+  const y = (v) => m.t + ((maxAbs - v) / (maxAbs - lo)) * (h - m.t - m.b);
+  el('line', { x1: m.l, x2: w - m.r, y1: y(0), y2: y(0), class: 'viz-base' }, svg);
+  el('text', { x: m.l - 6, y: y(maxAbs) + 4, 'text-anchor': 'end', class: 'viz-tick' }, svg).textContent = fmt(maxAbs);
+  if (hasNeg) el('text', { x: m.l - 6, y: y(lo) + 4, 'text-anchor': 'end', class: 'viz-tick' }, svg).textContent = fmt(lo);
+  const slot = (w - m.l - m.r) / rows.length;
+  const bw = Math.min(34, slot * 0.6);
+  rows.forEach((r, i) => {
+    const cx = m.l + slot * i + slot / 2;
+    const top = r.value >= 0 ? y(r.value) : y(0);
+    const bh = Math.max(1, Math.abs(y(r.value) - y(0)));
+    el('rect', { x: cx - bw / 2, y: top, width: bw, height: bh, rx: 3, fill: r.value >= 0 ? pos : neg }, svg);
+    el('text', { x: cx, y: r.value >= 0 ? top - 4 : top + bh + 12, 'text-anchor': 'middle', class: 'viz-value' }, svg).textContent = fmt(r.value);
+    el('text', { x: cx, y: h - 6, 'text-anchor': 'middle', class: 'viz-tick' }, svg).textContent = r.label;
+    const hit = el('rect', { x: cx - slot / 2, y: m.t, width: slot, height: h - m.t - m.b, fill: 'transparent' }, svg);
+    hit.addEventListener('pointermove', (ev) => showTip(`<div class="viz-tip-h">${esc(r.label)}</div><div>${esc(fmt(r.value))}</div>${r.note ? `<div>${esc(r.note)}</div>` : ''}`, ev.clientX, ev.clientY));
+    hit.addEventListener('pointerleave', hideTip);
+  });
+}

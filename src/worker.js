@@ -4,6 +4,7 @@ import { handleApi } from './api.js';
 import { runCollection } from './news.js';
 import { sendDigest } from './digest.js';
 import { refreshTrade } from './trade.js';
+import { refreshFx } from './fx.js';
 import { uid, nowIso } from './db.js';
 
 // Run a job and record it in job_logs; a failure is logged, never thrown (other jobs still run).
@@ -49,7 +50,10 @@ export default {
 
   async scheduled(event, env) {
     // 16:00 UTC = 00:00 HK: also refresh HMRC export statistics (monthly data, cheap to re-pull).
-    if (event.cron === '0 16 * * *') await logged(env, 'trade', () => refreshTrade(env));
+    if (event.cron === '0 16 * * *') {
+      await logged(env, 'fx', () => refreshFx(env));
+      await logged(env, 'trade', () => refreshTrade(env));
+    }
     await runCollection(env);
     // 23:00 UTC = 07:00 HK/Taipei: send the daily briefing after collecting.
     if (event.cron === '0 23 * * *') await sendDigest(env);

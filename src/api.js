@@ -4,6 +4,7 @@ import { json, uid, nowIso } from './db.js';
 import { runCollection } from './news.js';
 import { sendDigest } from './digest.js';
 import { CATEGORIES } from './rules.js';
+import { editionsRoute } from './editions.js';
 
 const PAGE_SIZE = 10;
 const REGIONS = ['scotland', 'japan', 'usa', 'taiwan', 'hk_china', 'ireland', 'other'];
@@ -159,6 +160,8 @@ async function adminRoute(request, env, ctx, p, url, user) {
   const m = request.method;
 
   if (p[0] === 'me' && m === 'GET') return json(user);
+  const ed = await editionsRoute(request, env, p, url);
+  if (ed) return ed;
 
   if (p[0] === 'sources' && m === 'GET') {
     const { results } = await env.DB.prepare(`SELECT s.*, (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id) AS article_count

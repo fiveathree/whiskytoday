@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { parseFeed, canonicalUrl, normalizeTitle, findCluster, matchesKeywords, sha256hex, similarity, SAME_EVENT_THRESHOLD, CROSS_CATEGORY_THRESHOLD } from './dedupe.js';
 import { CATEGORIES, isInvestorFocus, buildEntityIndex, matchEntities } from './rules.js';
 import { getSettings, uid, nowIso } from './db.js';
+import { rescoreForEntities } from './rescore.js';
 
 const FEED_TIMEOUT_MS = 15000;
 const MAX_ITEM_AGE_DAYS = 14;
@@ -285,5 +286,6 @@ async function saveResult(env, a, r, tokens, settings, index) {
     ).bind(u.name, u.type, a.id, now));
   }
   await env.DB.batch(stmts);
-  // Phase 2: investor-focus news linked to an entity will trigger edition re-scoring here (PLAN §4.2 step 6).
+  // Investor-focus news linked to a distillery / brand re-scores its editions (PLAN §4.2 step 6, §6.5).
+  if (focus && matched.length) await rescoreForEntities(env, matched.map((e) => e.id));
 }
