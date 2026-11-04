@@ -15,9 +15,24 @@ const LIST_COLS = `a.id, a.cluster_id, a.published_at, a.fetched_at, a.category,
   a.title_zh, a.title_en, a.summary_zh, a.summary_en, a.investor_card_json, s.region, s.name AS source_name`;
 
 export async function handleApi(request, env, ctx, user, url) {
+  try {
+    // await here so errors from async handlers land in this catch, not as a bare 500.
+    return await route(request, env, ctx, user, url);
+  } catch (e) {
+    console.error(e);
+    const msg = String(e?.message || e);
+    // D1 free tier: 100,000 row writes per day, reset at 00:00 UTC (08:00 Hong Kong).
+    if (/daily row write limit/i.test(msg)) {
+      return json({ error: '資料庫今日嘅免費寫入額度已經用完，香港時間明早 08:00 自動重設，之後再試。' }, 503);
+    }
+    return json({ error: 'server error' }, 500);
+  }
+}
+
+async function route(request, env, ctx, user, url) {
   const parts = url.pathname.split('/').filter(Boolean).slice(1); // drop "api"
   const method = request.method;
-  try {
+  {
     if (parts[0] === 'news' && method === 'GET' && !parts[1]) return listNews(env, url);
     if (parts[0] === 'news' && method === 'GET' && parts[1]) return getNews(env, parts[1]);
     if (parts[0] === 'trends' && method === 'GET') return getTrends(env);
@@ -30,9 +45,6 @@ export async function handleApi(request, env, ctx, user, url) {
       return adminRoute(request, env, ctx, parts.slice(1), url, user);
     }
     return json({ error: 'not found' }, 404);
-  } catch (e) {
-    console.error(e);
-    return json({ error: 'server error' }, 500);
   }
 }
 
