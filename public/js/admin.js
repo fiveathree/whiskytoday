@@ -1,5 +1,5 @@
 // Admin page: job log, sources, tracked entities, unmatched names (PLAN.md §4.6, §11 phase 1 step 4).
-import { esc, safeUrl, api, fmtDate, toast, REGION } from './common.js';
+import { esc, safeUrl, api, fmtDate, toast, initTheme, REGION } from './common.js';
 
 const $ = (id) => document.getElementById(id);
 const panel = $('panel');
@@ -152,4 +152,5 @@ panel.addEventListener('click', (e) => {
   RENDER[tab]();
 });
 api('me').then((me) => { $('who').textContent = me.email; }).catch(() => {});
+initTheme($('theme'));
 show('jobs');

@@ -1,5 +1,5 @@
 // News page (PLAN.md §4.7)
-import { esc, safeUrl, t, pick, getLang, setLang, applyI18n, api, fmtDate, REGION, CATEGORY } from './common.js';
+import { esc, safeUrl, t, pick, getLang, setLang, applyI18n, api, fmtDate, initTheme, REGION, CATEGORY } from './common.js';
 
 const $ = (id) => document.getElementById(id);
 const state = { view: '', region: '', category: '', from: '', to: '', q: '', page: 1, pages: 1 };
@@ -116,6 +116,7 @@ function init() {
   applyI18n();
   $('lang').textContent = getLang() === 'en' ? '中文' : 'EN';
   fillSelects();
+  initTheme($('theme'));
 
   $('f-view').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setView(b.dataset.v); });
   $('mine-bar').addEventListener('click', () => setView('mine'));

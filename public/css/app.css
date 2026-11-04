@@ -21,6 +21,28 @@
   color-scheme: dark;
 }
 
+/* Light theme: ivory paper, deeper gold for contrast (--ivory is the text colour token) */
+:root[data-theme="light"] {
+  --bg: #F6F1E7;
+  --bg-raise: #FCF9F3;
+  --bg-sunk: #EEE7D9;
+  --gold: #8E6F3C;
+  --gold-dim: rgba(142, 111, 60, .45);
+  --gold-faint: rgba(142, 111, 60, .2);
+  --ivory: #1F1B17;
+  --muted: #574f44;
+  --faint: #857b6c;
+  --bull: #56693a;
+  --bear: #9a4a36;
+  --fact-bg: rgba(31, 27, 23, .035);
+  --claim-bg: rgba(142, 111, 60, .09);
+  --ai-bg: rgba(42, 15, 18, .06);
+  color-scheme: light;
+}
+:root[data-theme="light"] .badge, :root[data-theme="light"] .btn.solid { color: #FCF9F3; }
+:root[data-theme="light"] dialog::backdrop { background: rgba(31, 27, 23, .35); }
+.theme { background: none; border: 1px solid var(--gold-faint); border-radius: var(--radius); padding: 3px 9px; cursor: pointer; color: var(--muted); font-size: 14px; line-height: 1.2; }
+
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {

@@ -65,6 +65,24 @@ export function applyI18n(root = document) {
   root.querySelectorAll('[data-i18n-ph]').forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
 }
 
+// Dark / light theme toggle; the choice is remembered per browser (set early by an inline script in <head>).
+export function initTheme(btn) {
+  const show = () => {
+    const light = document.documentElement.dataset.theme === 'light';
+    btn.textContent = light ? '☾' : '☀';
+    btn.title = light ? (lang === 'en' ? 'Dark mode' : '深色') : (lang === 'en' ? 'Light mode' : '淺色');
+    btn.setAttribute('aria-label', btn.title);
+  };
+  btn.addEventListener('click', () => {
+    const light = document.documentElement.dataset.theme !== 'light';
+    if (light) document.documentElement.dataset.theme = 'light';
+    else delete document.documentElement.dataset.theme;
+    try { localStorage.setItem('wt-theme', light ? 'light' : 'dark'); } catch { /* ignore */ }
+    show();
+  });
+  show();
+}
+
 export async function api(path, opts = {}) {
   const res = await fetch(`/api/${path}`, {
     ...opts,
