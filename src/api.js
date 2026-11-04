@@ -1,7 +1,7 @@
 // JSON API. /api/news* is public (owner decision 2026-11-04); /api/admin/* needs an Access admin,
 // checked in worker.js and again here, not just hidden in the UI (PLAN §8.1).
 import { json, uid, nowIso } from './db.js';
-import { runCollection } from './news.js';
+import { runCollection, manualFeeds, manualProcess } from './news.js';
 import { sendDigest } from './digest.js';
 import { CATEGORIES } from './rules.js';
 import { editionsRoute } from './editions.js';
@@ -204,6 +204,9 @@ async function adminRoute(request, env, ctx, p, url, user) {
   }
   // Run inside the request (no waitUntil): waitUntil is cut off ~30s after the response,
   // while a request may run as long as the browser stays connected.
+  // Manual collection in short steps (see news.js): feeds first, then AI in small batches.
+  if (p[0] === 'run' && p[1] === 'feeds' && m === 'POST') return json(await manualFeeds(env));
+  if (p[0] === 'run' && p[1] === 'process' && m === 'POST') return json(await manualProcess(env, 8));
   if (p[0] === 'run' && m === 'POST') {
     await runCollection(env);
     return json({ ok: true, finished: nowIso() });

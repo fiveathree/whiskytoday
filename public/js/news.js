@@ -158,10 +158,24 @@ async function initAdminTools() {
   $('collect').addEventListener('click', async () => {
     const btn = $('collect');
     btn.disabled = true;
-    btn.textContent = t('collecting');
+    btn.textContent = t('collect.feeds');
     try {
-      await api('admin/run', { method: 'POST' });
-      toast(t('collect.done'));
+      // Step 1: read the news sources. Step 2: AI in batches of 8 until the queue is empty.
+      const f = await api('admin/run/feeds', { method: 'POST' });
+      let pending = f.pending;
+      const total = pending;
+      let done = 0;
+      for (let round = 0; pending > 0 && round < 12; round++) {
+        btn.textContent = `${t('collect.ai')} ${done}/${total}`;
+        const r = await api('admin/run/process', { method: 'POST' });
+        if (r.error) throw new Error(r.error);
+        done += r.processed + r.failed;
+        if (!r.processed && !r.failed) break;
+        pending = r.pending;
+        state.page = 1;
+        load();
+      }
+      toast(`${t('collect.done')}：${t('collect.new')} ${f.found}，${t('collect.processed')} ${done}${pending ? `，${t('collect.left')} ${pending}` : ''}`);
       state.page = 1;
       load();
     } catch (e) {

@@ -11,13 +11,46 @@ const SOURCE_PRIORITY = { official: 0, news: 1, auction: 1, blog: 2 };
 // Models that accept the server-side refusal fallback ("default" form).
 const FALLBACK_MODELS = new Set(['claude-fable-5-1', 'claude-opus-5-5', 'claude-opus-5', 'claude-sonnet-5-5']);
 
-export async function runCollection(env) {
+async function startJob(env, name) {
   // A run that was cut off never finishes its log row; mark old ones as interrupted.
   await env.DB.prepare("UPDATE job_logs SET status = 'error', error = 'interrupted', finished_at = ? WHERE status = 'running' AND started_at < ?")
     .bind(nowIso(), new Date(Date.now() - 20 * 60_000).toISOString()).run();
   const job = { id: uid(), started: nowIso(), found: 0, processed: 0, cost: 0 };
   await env.DB.prepare('INSERT INTO job_logs (id, job, started_at, status) VALUES (?, ?, ?, ?)')
-    .bind(job.id, 'collect', job.started, 'running').run();
+    .bind(job.id, name, job.started, 'running').run();
+  return job;
+}
+
+// Manual "collect now" is split into short steps so a phone going to sleep (which drops the request)
+// cannot kill a long run, and each step stays under the free plan's 50 outbound requests.
+export async function manualFeeds(env) {
+  const job = await startJob(env, 'collect');
+  try {
+    job.found = await collectFeeds(env);
+    await finishJob(env, job, 'ok', null);
+  } catch (e) {
+    await finishJob(env, job, 'error', String(e?.message || e).slice(0, 500));
+    throw e;
+  }
+  return { found: job.found, pending: await pendingCount(env) };
+}
+
+export async function manualProcess(env, limit = 8) {
+  if (!env.ANTHROPIC_API_KEY) return { processed: 0, failed: 0, pending: await pendingCount(env), error: 'ANTHROPIC_API_KEY not set' };
+  const job = await startJob(env, 'ai');
+  const r = await processPending(env, limit);
+  job.processed = r.processed;
+  job.cost = r.costCents;
+  await finishJob(env, job, r.failed ? 'partial' : 'ok', r.failed ? `${r.failed} failed` : null);
+  return { processed: r.processed, failed: r.failed, pending: await pendingCount(env) };
+}
+
+export function pendingCount(env) {
+  return env.DB.prepare("SELECT COUNT(*) AS n FROM articles WHERE status = 'pending'").first('n');
+}
+
+export async function runCollection(env) {
+  const job = await startJob(env, 'collect');
   try {
     job.found = await collectFeeds(env);
     if (!env.ANTHROPIC_API_KEY) {
@@ -178,9 +211,9 @@ async function callClaude(client, settings, a, sourceName) {
 }
 
 // Step 3–5: one AI call per cluster lead, then investor-focus rule and entity matching.
-export async function processPending(env) {
+export async function processPending(env, limitOverride) {
   const settings = await getSettings(env);
-  const limit = Number(settings.max_articles_per_run) || 60;
+  const limit = limitOverride || Number(settings.max_articles_per_run) || 60;
   const { results: pending } = await env.DB.prepare(
     `SELECT a.*, s.name AS source_name, s.kind AS source_kind FROM articles a JOIN sources s ON s.id = a.source_id
      WHERE a.status = 'pending' ORDER BY a.fetched_at DESC LIMIT 500`,

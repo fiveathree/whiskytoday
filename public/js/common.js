@@ -46,6 +46,8 @@ const STR = {
   'collecting': ['收集中…約 3–5 分鐘，請勿關閉', 'Collecting… 3–5 min, keep open'],
   'collect.done': ['收集完成', 'Collection finished'],
   'collect.fail': ['未完成：', 'Not finished: '],
+  'collect.feeds': ['讀取新聞來源中…', 'Reading sources…'], 'collect.ai': ['AI 整理中', 'AI processing'],
+  'collect.new': ['新文章', 'new'], 'collect.processed': ['已整理', 'processed'], 'collect.left': ['仲有排隊', 'still queued'],
   'f.view': ['檢視', 'View'], 'f.region': ['地區', 'Region'], 'f.category': ['類別', 'Category'], 'f.date': ['日期', 'Date'],
   'view.all': ['全部', 'All'], 'view.investor': ['投資者焦點', 'Investor focus'],
   'title.news': ['每日全球情報', 'Global Daily Intelligence'],
