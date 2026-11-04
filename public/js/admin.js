@@ -32,7 +32,7 @@ async function renderJobs() {
     <div class="table-wrap"><table>
       <thead><tr><th>工作</th><th>開始</th><th>狀態</th><th class="num">新增</th><th class="num">AI 處理</th><th class="num">成本</th><th>錯誤</th></tr></thead>
       <tbody>${d.jobs.map((j) => `<tr>
-        <td>${j.job === 'collect' ? '收集新聞' : '每日簡報'}</td>
+        <td>${{ collect: '收集新聞', digest: '每日簡報', trade: '出口數據' }[j.job] || esc(j.job)}</td>
         <td>${esc(fmtDate(j.started_at))}</td>
         <td class="${j.status === 'ok' ? 'ok' : j.status === 'running' ? '' : 'bad'}">${esc(j.status)}</td>
         <td class="num">${j.items_found ?? ''}</td><td class="num">${j.items_processed ?? ''}</td>

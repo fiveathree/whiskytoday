@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Whisky Today · 市場趨勢</title>
+<meta name="description" content="蘇格蘭威士忌出口及市場消息趨勢">
+<meta property="og:title" content="Whisky Today · Market Trends">
+<meta property="og:description" content="Scotch whisky export and market news trends">
+<meta property="og:image" content="/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@500&display=swap">
+<link rel="stylesheet" href="/css/app.css">
+<script>try{if(localStorage.getItem("wt-theme")==="dark")delete document.documentElement.dataset.theme}catch(e){}</script>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <a class="brand" href="/"><span class="word">WHISKY TODAY</span><span class="rule"></span></a>
+    <nav class="topnav">
+      <a href="/" data-i18n="nav.news">每日情報</a>
+      <a href="/trends" aria-current="page" data-i18n="nav.trends">市場趨勢</a>
+    </nav>
+    <span class="spacer"></span>
+    <button class="btn small" id="print" type="button" data-i18n="print">列印 / PDF</button>
+    <button class="lang" id="lang" type="button">EN</button>
+    <button class="theme" id="theme" type="button"></button>
+  </header>
+
+  <main class="trends">
+    <div class="trends-head">
+      <h1 data-i18n="title.trends">市場趨勢</h1>
+      <span class="count" id="asof"></span>
+      <div class="tabs" role="tablist" id="ttabs">
+        <button type="button" role="tab" data-tab="exports" aria-selected="true" data-i18n="t.exports">整體出口</button>
+        <button type="button" role="tab" data-tab="markets" aria-selected="false" data-i18n="t.markets">亞洲及主要市場</button>
+        <button type="button" role="tab" data-tab="news" aria-selected="false" data-i18n="t.news">市場消息</button>
+      </div>
+    </div>
+
+    <section class="tpanel" data-panel="exports">
+      <h2 class="print-only" data-i18n="t.exports">整體出口</h2>
+      <div class="stat-row" id="kpis"></div>
+      <div class="chart-card grow">
+        <h3 data-i18n="c.total">蘇格蘭威士忌出口值（滾動 12 個月總和）</h3>
+        <div class="viz-legend" id="lg-total"></div>
+        <div class="chart" id="c-total"></div>
+      </div>
+    </section>
+
+    <section class="tpanel hidden" data-panel="markets">
+      <h2 class="print-only" data-i18n="t.markets">亞洲及主要市場</h2>
+      <div class="two">
+        <div class="chart-card">
+          <h3 data-i18n="c.asia">亞洲市場出口值（滾動 12 個月）</h3>
+          <div class="viz-legend" id="lg-asia"></div>
+          <div class="chart" id="c-asia"></div>
+        </div>
+        <div class="chart-card">
+          <h3 data-i18n="c.top">十二大出口市場（近 12 個月，按年變化）</h3>
+          <div class="chart" id="c-top"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tpanel hidden" data-panel="news">
+      <h2 class="print-only" data-i18n="t.news">市場消息</h2>
+      <div class="two">
+        <div class="chart-card">
+          <h3 data-i18n="c.cats">每月新聞類別</h3>
+          <div class="viz-legend" id="lg-cats"></div>
+          <div class="chart" id="c-cats"></div>
+          <p class="disclaimer hidden" id="cats-note" data-i18n="accumulating"></p>
+        </div>
+        <div class="chart-card">
+          <h3 data-i18n="c.sent">投資者焦點：利好 vs 利淡（每月）</h3>
+          <div class="viz-legend" id="lg-sent"></div>
+          <div class="chart chart-short" id="c-sent"></div>
+          <h3 style="margin-top:10px" data-i18n="c.ent">近 180 日最多投資者焦點消息嘅酒廠／品牌</h3>
+          <div id="c-ent" class="ent-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="trends-foot">
+      <span id="src"></span>
+      <span data-i18n="disclaimer.full">本頁資料僅供市場參考，並非投資建議，不保證任何成交價或回報。</span>
+    </footer>
+  </main>
+</div>
+<script type="module" src="/js/trends.js"></script>
+</body>
+</html>

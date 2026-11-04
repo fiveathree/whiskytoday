@@ -18,6 +18,7 @@ export async function handleApi(request, env, ctx, user, url) {
   try {
     if (parts[0] === 'news' && method === 'GET' && !parts[1]) return listNews(env, url);
     if (parts[0] === 'news' && method === 'GET' && parts[1]) return getNews(env, parts[1]);
+    if (parts[0] === 'trends' && method === 'GET') return getTrends(env);
 
     if (parts[0] === 'admin') {
       if (user?.role !== 'admin') return json({ error: 'forbidden' }, 403);
@@ -28,6 +29,50 @@ export async function handleApi(request, env, ctx, user, url) {
     console.error(e);
     return json({ error: 'server error' }, 500);
   }
+}
+
+// Market trends for the public trends page: HMRC export statistics plus our own news data.
+const ASIA = ['HK', 'TW', 'CN', 'SG', 'JP', 'KR'];
+
+async function getTrends(env) {
+  const latest = await env.DB.prepare("SELECT MAX(month) AS m FROM trade_exports WHERE segment = 'all_scotch'").first('m');
+  // Last 12 complete months vs the 12 before (by month number).
+  const ym = (m, back) => { const y = Math.floor(m / 100); const mo = m % 100 - 1 - back; const d = new Date(Date.UTC(y, mo, 1)); return d.getUTCFullYear() * 100 + d.getUTCMonth() + 1; };
+  const from12 = latest ? ym(latest, 11) : 0;
+  const from24 = latest ? ym(latest, 23) : 0;
+  const since180 = new Date(Date.now() - 180 * 86400_000).toISOString();
+  const since365 = new Date(Date.now() - 365 * 86400_000).toISOString();
+
+  const [monthly, asia, markets, newsMonthly, sentiment, entities] = await Promise.all([
+    env.DB.prepare(`SELECT month, segment, SUM(value_gbp) AS value, SUM(lpa) AS lpa FROM trade_exports
+      GROUP BY month, segment ORDER BY month`).all(),
+    env.DB.prepare(`SELECT month, country_alpha AS c, value_gbp AS value FROM trade_exports
+      WHERE segment = 'all_scotch' AND country_alpha IN (${ASIA.map(() => '?').join(',')}) ORDER BY month`).bind(...ASIA).all(),
+    env.DB.prepare(`SELECT country_alpha AS c, MAX(country_name) AS name,
+        SUM(CASE WHEN month >= ? THEN value_gbp ELSE 0 END) AS last12,
+        SUM(CASE WHEN month < ? THEN value_gbp ELSE 0 END) AS prev12
+      FROM trade_exports WHERE segment = 'all_scotch' AND month >= ? AND country_alpha IS NOT NULL
+      GROUP BY country_alpha ORDER BY last12 DESC LIMIT 12`).bind(from12, from12, from24).all(),
+    env.DB.prepare(`SELECT substr(COALESCE(published_at, fetched_at), 1, 7) AS ym, category, COUNT(*) AS n
+      FROM articles WHERE status = 'published' AND COALESCE(published_at, fetched_at) >= ?
+      GROUP BY ym, category ORDER BY ym`).bind(since365).all(),
+    env.DB.prepare(`SELECT substr(COALESCE(published_at, fetched_at), 1, 7) AS ym,
+        json_extract(investor_card_json, '$.direction') AS dir, COUNT(*) AS n
+      FROM articles WHERE status = 'published' AND investor_focus = 1 AND COALESCE(published_at, fetched_at) >= ?
+      GROUP BY ym, dir ORDER BY ym`).bind(since365).all(),
+    env.DB.prepare(`SELECT e.name_en, e.name_zh, e.type, COUNT(*) AS n, SUM(COALESCE(ae.direction, 0)) AS net
+      FROM article_entities ae JOIN entities e ON e.id = ae.entity_id JOIN articles a ON a.id = ae.article_id
+      WHERE a.status = 'published' AND a.investor_focus = 1 AND COALESCE(a.published_at, a.fetched_at) >= ?
+      GROUP BY e.id ORDER BY n DESC, net DESC LIMIT 10`).bind(since180).all(),
+  ]);
+  const res = json({
+    latestMonth: latest,
+    exports: { monthly: monthly.results, asia: asia.results, markets: markets.results },
+    news: { monthly: newsMonthly.results, sentiment: sentiment.results, entities: entities.results },
+    source: 'HMRC Overseas Trade Statistics (uktradeinfo.com), Open Government Licence v3.0',
+  });
+  res.headers.set('cache-control', 'public, max-age=900');
+  return res;
 }
 
 function buildFilters(url) {
