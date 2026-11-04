@@ -14,9 +14,9 @@ database_name = "whiskytoday"
 database_id = "a5c375c3-a8d3-4c2e-8be6-b92ba096e921"
 migrations_dir = "migrations"
 
-# 07:00 and 19:00 Hong Kong / Taipei time
+# 00:00, 07:00 and 19:00 Hong Kong / Taipei time
 [triggers]
-crons = ["0 23 * * *", "0 11 * * *"]
+crons = ["0 16 * * *", "0 23 * * *", "0 11 * * *"]
 
 # Daily briefing email (Email Routing). Destination must be a verified address.
 [[send_email]]

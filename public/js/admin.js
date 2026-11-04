@@ -26,7 +26,6 @@ async function renderJobs() {
         <div class="stat"><div class="v">${d.failed.length}</div><div class="l">AI 處理失敗</div></div>
       </div>
       <span class="spacer" style="flex:1"></span>
-      <button class="btn" id="run">立即收集新聞</button>
       <button class="btn" id="digest">寄出今日簡報</button>
       ${d.failed.length ? '<button class="btn" id="retry">重試失敗項目</button>' : ''}
     </div>
@@ -40,7 +39,7 @@ async function renderJobs() {
         <td class="num">${j.cost_estimate != null ? usd(j.cost_estimate) : ''}</td>
         <td class="err" title="${esc(j.error)}">${esc(j.error)}</td></tr>`).join('') || '<tr><td colspan="7">未有紀錄</td></tr>'}
       </tbody></table></div>
-    <div class="toolbar"><span class="note">每日 07:00 及 19:00（香港／台北時間）自動收集；07:00 那輪完成後寄簡報。</span></div>`;
+    <div class="toolbar"><span class="note">每日 00:00、07:00、19:00（香港／台北時間）自動收集；07:00 那輪完成後寄簡報。即時收集嘅掣喺「每日情報」頁頂（登入後先見到）。</span></div>`;
   const runBtn = async (btn, path, busyText, doneText) => {
     const label = btn.textContent;
     btn.disabled = true;
@@ -50,7 +49,6 @@ async function renderJobs() {
     btn.textContent = label;
     renderJobs();
   };
-  $('run').onclick = () => runBtn($('run'), 'admin/run', '收集中…約 3–5 分鐘，請勿關閉此頁', '收集完成');
   $('digest').onclick = () => runBtn($('digest'), 'admin/digest', '寄出中…', '已處理，結果見工作紀錄');
   if ($('retry')) $('retry').onclick = async () => { await api('admin/retry-failed', { method: 'POST' }); toast('失敗項目會喺下次收集時重試'); renderJobs(); };
 }

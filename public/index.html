@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="zh-Hant" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@500&display=swap">
 <link rel="stylesheet" href="/css/app.css">
-<script>try{if(localStorage.getItem("wt-theme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
+<script>try{if(localStorage.getItem("wt-theme")==="dark")delete document.documentElement.dataset.theme}catch(e){}</script>
 </head>
 <body>
 <div class="shell">
@@ -26,6 +26,9 @@
       <a href="/" aria-current="page" data-i18n="nav.news">每日情報</a>
     </nav>
     <span class="spacer"></span>
+    <!-- Only shown after /api/admin/me succeeds (Access admin signed in) -->
+    <button class="btn small hidden" id="collect" type="button" data-i18n="collect">立即收集新聞</button>
+    <a class="admin-link hidden" id="nav-admin" href="/admin" data-i18n="nav.admin">後台</a>
     <button class="lang" id="lang" type="button">EN</button>
     <button class="theme" id="theme" type="button"></button>
   </header>
@@ -47,7 +50,7 @@
         <h3 data-i18n="f.category">類別</h3>
         <select class="field" id="f-category"></select>
       </section>
-      <section>
+      <section class="f-dates">
         <h3 data-i18n="f.date">日期</h3>
         <div class="dates">
           <input class="field" type="date" id="f-from" aria-label="From">

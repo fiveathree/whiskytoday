@@ -1,5 +1,5 @@
 // News page (PLAN.md §4.7)
-import { esc, safeUrl, t, pick, getLang, setLang, applyI18n, api, fmtDate, initTheme, REGION, CATEGORY } from './common.js';
+import { esc, safeUrl, t, pick, getLang, setLang, applyI18n, api, fmtDate, initTheme, toast, REGION, CATEGORY } from './common.js';
 
 const $ = (id) => document.getElementById(id);
 const state = { view: '', region: '', category: '', from: '', to: '', q: '', page: 1, pages: 1 };
@@ -9,9 +9,9 @@ const L = (row, field) => (getLang() === 'en' ? row[`${field}_en`] || row[`${fie
 
 function fillSelects() {
   const opt = (v, label, sel) => `<option value="${v}"${sel === v ? ' selected' : ''}>${esc(label)}</option>`;
-  $('f-region').innerHTML = opt('', t('any'), state.region)
+  $('f-region').innerHTML = opt('', t('any.region'), state.region)
     + Object.entries(REGION).map(([k, v]) => opt(k, pick(v), state.region)).join('');
-  $('f-category').innerHTML = opt('', t('any'), state.category)
+  $('f-category').innerHTML = opt('', t('any.category'), state.category)
     + Object.entries(CATEGORY).map(([k, v]) => opt(k, pick(v), state.category)).join('');
 }
 
@@ -140,7 +140,36 @@ function init() {
     load();
   });
 
+  initAdminTools();
   load();
+}
+
+// The collect button is only for a signed-in admin. /api/admin/* sits behind Access, so an anonymous
+// visitor gets a redirect to the login page (opaque with redirect: 'manual') and sees nothing.
+async function initAdminTools() {
+  try {
+    const res = await fetch('/api/admin/me', { redirect: 'manual', credentials: 'same-origin' });
+    if (!res.ok) return;
+    const me = await res.json();
+    if (me.role !== 'admin') return;
+  } catch { return; }
+  $('collect').classList.remove('hidden');
+  $('nav-admin').classList.remove('hidden');
+  $('collect').addEventListener('click', async () => {
+    const btn = $('collect');
+    btn.disabled = true;
+    btn.textContent = t('collecting');
+    try {
+      await api('admin/run', { method: 'POST' });
+      toast(t('collect.done'));
+      state.page = 1;
+      load();
+    } catch (e) {
+      toast(`${t('collect.fail')}${e.message}`);
+    }
+    btn.disabled = false;
+    btn.textContent = t('collect');
+  });
 }
 
 init();
