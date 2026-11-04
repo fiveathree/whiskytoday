@@ -1,7 +1,8 @@
 // Whisky Today Worker entry: routes fetch() and scheduled() (PLAN.md §2)
 import { authenticate } from './access.js';
 import { handleApi } from './api.js';
-import { runCollection } from './news.js';
+import { WorkerEntrypoint } from 'cloudflare:workers';
+import { manualFeeds, manualProcess, processPending } from './news.js';
 import { sendDigest } from './digest.js';
 import { refreshTrade } from './trade.js';
 import { refreshFx } from './fx.js';
@@ -17,6 +18,28 @@ async function logged(env, job, fn) {
   } catch (e) {
     await env.DB.prepare('UPDATE job_logs SET finished_at = ?, status = ?, error = ? WHERE id = ?')
       .bind(nowIso(), 'error', String(e?.message || e).slice(0, 500), id).run();
+  }
+}
+
+// Internal RPC entrypoint, reached only through the SELF service binding (not from the internet).
+// Each call is its own Worker invocation with its own limits, so the scheduled run can process the AI
+// queue in batches of 8 and stay under the free plan's 50 outbound requests per invocation.
+export class Internal extends WorkerEntrypoint {
+  async processBatch(n) {
+    return manualProcess(this.env, Math.min(Math.max(1, Number(n) || 8), 10));
+  }
+}
+
+const BATCH = 8;
+const MAX_BATCHES = 7; // up to 56 articles per scheduled run (PLAN §4.2: about 60)
+
+async function scheduledCollection(env) {
+  const { pending } = await manualFeeds(env);
+  if (!pending) return;
+  if (!env.SELF) { await processPending(env, 20); return; } // local dev without the binding
+  for (let i = 0; i < MAX_BATCHES; i++) {
+    const r = await env.SELF.processBatch(BATCH);
+    if (r.error || (!r.processed && !r.failed) || !r.pending) break;
   }
 }
 
@@ -55,7 +78,7 @@ export default {
       await logged(env, 'fx', () => refreshFx(env));
       await logged(env, 'trade', () => refreshTrade(env));
     }
-    await runCollection(env);
+    await scheduledCollection(env);
     // 23:00 UTC = 07:00 HK/Taipei: send the daily briefing after collecting.
     if (event.cron === '0 23 * * *') await sendDigest(env);
   },

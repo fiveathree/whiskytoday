@@ -23,6 +23,12 @@ crons = ["0 16 * * *", "0 23 * * *", "0 11 * * *"]
 binding = "MEDIA"
 bucket_name = "whiskytoday-media"
 
+# Self binding to the Internal entrypoint: scheduled runs process the AI queue in separate invocations
+[[services]]
+binding = "SELF"
+service = "whiskytoday"
+entrypoint = "Internal"
+
 # Daily briefing email (Email Routing). Destination must be a verified address.
 [[send_email]]
 name = "EMAIL"
