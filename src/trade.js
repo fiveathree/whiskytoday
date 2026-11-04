@@ -52,11 +52,14 @@ export async function refreshTrade(env) {
   let n = 0;
   for (const segment of Object.keys(SEGMENTS)) {
     const rows = await fetchExports(from, to, segment, countries);
+    // WHERE skips unchanged rows: the D1 free tier allows 100k row writes/day across the account.
     const stmts = rows.map((r) => env.DB.prepare(
       `INSERT INTO trade_exports (month, country_id, country_name, country_alpha, segment, value_gbp, lpa)
        VALUES (?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(month, country_id, segment) DO UPDATE SET value_gbp = excluded.value_gbp, lpa = excluded.lpa,
-         country_name = excluded.country_name, country_alpha = excluded.country_alpha`,
+         country_name = excluded.country_name, country_alpha = excluded.country_alpha
+       WHERE value_gbp IS NOT excluded.value_gbp OR lpa IS NOT excluded.lpa
+         OR country_name IS NOT excluded.country_name OR country_alpha IS NOT excluded.country_alpha`,
     ).bind(r.month, r.country_id, r.country_name, r.country_alpha, r.segment, r.value_gbp, r.lpa));
     for (let i = 0; i < stmts.length; i += 100) await env.DB.batch(stmts.slice(i, i + 100));
     n += rows.length;
