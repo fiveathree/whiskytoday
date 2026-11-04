@@ -94,7 +94,7 @@ async function renderTracked(q = '') {
   panel.innerHTML = `
     <div class="toolbar">
       <input class="field" id="eq" placeholder="搜尋酒廠／品牌／拍賣行" value="${esc(q)}" style="max-width:320px">
-      <span class="note">打剔＝追蹤。追蹤中的名稱用嚟計「影響你追蹤的酒」及簡報第一段。</span>
+      <span class="note">打剔＝追蹤。追蹤中的名稱只用於每日簡報第一段（只寄俾你），公開頁唔會顯示。</span>
     </div>
     <div class="table-wrap"><table>
       <thead><tr><th>追蹤</th><th>名稱</th><th>中文</th><th>類型</th><th>地區</th><th>狀況</th></tr></thead>
@@ -151,6 +151,6 @@ panel.addEventListener('click', (e) => {
   page += Number(b.dataset.pg);
   RENDER[tab]();
 });
-api('me').then((me) => { $('who').textContent = me.email; }).catch(() => {});
+api('admin/me').then((me) => { $('who').textContent = me.email; }).catch(() => {});
 initTheme($('theme'));
 show('jobs');

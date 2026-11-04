@@ -8,9 +8,8 @@ export const safeUrl = (u) => (/^https?:\/\//i.test(String(u || '')) ? esc(u) : 
 const STR = {
   'nav.news': ['每日情報', 'Intelligence'],
   'nav.admin': ['後台', 'Admin'],
-  'mine.bar': ['影響你追蹤的酒', 'Affecting your tracked whisky'],
   'f.view': ['檢視', 'View'], 'f.region': ['地區', 'Region'], 'f.category': ['類別', 'Category'], 'f.date': ['日期', 'Date'],
-  'view.all': ['全部', 'All'], 'view.investor': ['投資者焦點', 'Investor focus'], 'view.mine': ['影響我的酒', 'My whisky'],
+  'view.all': ['全部', 'All'], 'view.investor': ['投資者焦點', 'Investor focus'],
   'title.news': ['每日全球情報', 'Global Daily Intelligence'],
   'search': ['搜尋新聞…', 'Search news…'],
   'prev': ['上一頁', 'Previous'], 'next': ['下一頁', 'Next'],

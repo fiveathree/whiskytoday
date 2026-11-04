@@ -1,4 +1,5 @@
-// JSON API (all behind Access). Admin-only routes are checked here, not just hidden in the UI (PLAN §8.1).
+// JSON API. /api/news* is public (owner decision 2026-11-04); /api/admin/* needs an Access admin,
+// checked in worker.js and again here, not just hidden in the UI (PLAN §8.1).
 import { json, uid, nowIso } from './db.js';
 import { runCollection } from './news.js';
 import { sendDigest } from './digest.js';
@@ -7,7 +8,7 @@ import { CATEGORIES } from './rules.js';
 const PAGE_SIZE = 10;
 const REGIONS = ['scotland', 'japan', 'usa', 'taiwan', 'hk_china', 'ireland', 'other'];
 
-// Columns safe for every signed-in user (no AI cost / model details).
+// Columns safe for the public (no AI cost / model details).
 const LIST_COLS = `a.id, a.cluster_id, a.published_at, a.fetched_at, a.category, a.importance, a.investor_focus,
   a.title_zh, a.title_en, a.summary_zh, a.summary_en, a.investor_card_json, s.region, s.name AS source_name`;
 
@@ -15,13 +16,12 @@ export async function handleApi(request, env, ctx, user, url) {
   const parts = url.pathname.split('/').filter(Boolean).slice(1); // drop "api"
   const method = request.method;
   try {
-    if (parts[0] === 'me' && method === 'GET') return json(user);
     if (parts[0] === 'news' && method === 'GET' && !parts[1]) return listNews(env, url);
-    if (parts[0] === 'news' && method === 'GET' && parts[1]) return getNews(env, parts[1], user);
+    if (parts[0] === 'news' && method === 'GET' && parts[1]) return getNews(env, parts[1]);
 
     if (parts[0] === 'admin') {
-      if (user.role !== 'admin') return json({ error: 'forbidden' }, 403);
-      return adminRoute(request, env, ctx, parts.slice(1), url);
+      if (user?.role !== 'admin') return json({ error: 'forbidden' }, 403);
+      return adminRoute(request, env, ctx, parts.slice(1), url, user);
     }
     return json({ error: 'not found' }, 404);
   } catch (e) {
@@ -35,10 +35,6 @@ function buildFilters(url) {
   const binds = [];
   const view = url.searchParams.get('view');
   if (view === 'investor') where.push('a.investor_focus = 1');
-  if (view === 'mine') {
-    where.push(`EXISTS (SELECT 1 FROM article_entities ae JOIN entities e ON e.id = ae.entity_id
-      WHERE ae.article_id = a.id AND e.is_tracked = 1)`);
-  }
   const region = url.searchParams.get('region');
   if (REGIONS.includes(region)) { where.push('s.region = ?'); binds.push(region); }
   const cat = url.searchParams.get('category');
@@ -66,17 +62,14 @@ async function listNews(env, url) {
   const { where, binds } = buildFilters(url);
   const page = Math.max(1, parseInt(url.searchParams.get('page'), 10) || 1);
   const base = `FROM articles a JOIN sources s ON s.id = a.source_id WHERE ${where}`;
-  const [{ results: items }, total, mine] = await Promise.all([
+  const [{ results: items }, total] = await Promise.all([
     env.DB.prepare(
       `SELECT ${LIST_COLS}, (SELECT COUNT(*) FROM articles m WHERE m.cluster_id = a.cluster_id AND m.status IN ('published','merged')) AS source_count
        ${base} ORDER BY COALESCE(a.published_at, a.fetched_at) DESC LIMIT ? OFFSET ?`,
     ).bind(...binds, PAGE_SIZE, (page - 1) * PAGE_SIZE).all(),
     env.DB.prepare(`SELECT COUNT(*) AS n ${base}`).bind(...binds).first('n'),
-    env.DB.prepare(`SELECT COUNT(DISTINCT a.id) AS n FROM articles a JOIN article_entities ae ON ae.article_id = a.id
-      JOIN entities e ON e.id = ae.entity_id WHERE a.status = 'published' AND e.is_tracked = 1
-      AND COALESCE(a.published_at, a.fetched_at) >= ?`).bind(new Date(Date.now() - 7 * 86400_000).toISOString()).first('n'),
   ]);
-  return json({ items: items.map(withDirection), total, page, pageSize: PAGE_SIZE, affectingMine: mine });
+  return json({ items: items.map(withDirection), total, page, pageSize: PAGE_SIZE });
 }
 
 function withDirection(row) {
@@ -88,12 +81,12 @@ function withDirection(row) {
   return { ...row, direction };
 }
 
-async function getNews(env, id, user) {
+async function getNews(env, id) {
   const a = await env.DB.prepare(
     `SELECT ${LIST_COLS}, a.facts_json, a.claims_json, a.ai_view_zh, a.ai_view_en, a.canonical_url, a.original_title, a.status
      FROM articles a JOIN sources s ON s.id = a.source_id WHERE a.id = ?`,
   ).bind(id).first();
-  if (!a || (a.status !== 'published' && user.role !== 'admin')) return json({ error: 'not found' }, 404);
+  if (!a || a.status !== 'published') return json({ error: 'not found' }, 404);
   const [{ results: sources }, { results: entities }] = await Promise.all([
     env.DB.prepare(`SELECT s.name, m.canonical_url AS url, m.original_title AS title, m.published_at
       FROM articles m JOIN sources s ON s.id = m.source_id WHERE m.cluster_id = ? AND m.status IN ('published','merged')
@@ -117,8 +110,10 @@ async function readBody(request) {
   try { return await request.json(); } catch { return {}; }
 }
 
-async function adminRoute(request, env, ctx, p, url) {
+async function adminRoute(request, env, ctx, p, url, user) {
   const m = request.method;
+
+  if (p[0] === 'me' && m === 'GET') return json(user);
 
   if (p[0] === 'sources' && m === 'GET') {
     const { results } = await env.DB.prepare(`SELECT s.*, (SELECT COUNT(*) FROM articles a WHERE a.source_id = s.id) AS article_count

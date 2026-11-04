@@ -19,16 +19,14 @@ export default {
 
     if (PUBLIC_ASSET.test(path)) return env.ASSETS.fetch(request);
 
-    // Everything else needs a valid Access identity (PLAN §8).
-    const user = await authenticate(request, env);
-    if (!user) return new Response('Forbidden', { status: 403 });
+    // Owner decision (2026-11-04): the news page and its read API are public, no login.
+    // Admin pages and admin APIs stay behind Access and are re-checked here (PLAN §8).
+    const isAdminPath = path === '/admin' || path.startsWith('/admin/') || path.startsWith('/api/admin');
+    const user = isAdminPath ? await authenticate(request, env) : null;
+    if (isAdminPath && user?.role !== 'admin') return new Response('Forbidden', { status: 403 });
 
     if (path.startsWith('/api/')) return handleApi(request, env, ctx, user, url);
-
-    if (path === '/admin' || path === '/admin/') {
-      if (user.role !== 'admin') return new Response('Forbidden', { status: 403 });
-      return page(env, request, '/admin');
-    }
+    if (path === '/admin' || path === '/admin/') return page(env, request, '/admin');
     if (path === '/') return page(env, request, '/');
     return new Response('Not found', { status: 404 });
   },

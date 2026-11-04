@@ -310,14 +310,14 @@ CREATE TABLE job_logs (
 
 管理員可在後台新增／停用來源。
 
-### 4.7 前台：新聞頁（`/`，Admin 及 Viewer，受 Access 保護）
+### 4.7 前台：新聞頁（`/`，公開，毋須登入）
 
-- 一屏佈局：左側篩選（全部／投資者焦點／影響我的酒；地區；類別；日期），右側新聞卡片列表（分頁，每頁 10–12 張）。
-- 頂部固定一行：「影響你手上的酒（N）」。
+> **2026-11-04 項目擁有人決定**：用戶不想登入，新聞頁及其讀取 API（`/api/news*`）改為公開；後台及所有寫入仍受 Access 保護。因此「影響我的酒」篩選及計數不在公開頁顯示（會洩露 Admin 追蹤的酒廠），只保留在每日簡報。頁面仍加 `noindex`。
+
+- 一屏佈局：左側篩選（全部／投資者焦點；地區；類別；日期），右側新聞卡片列表（分頁，每頁 10–12 張）。
 - 卡片：中文標題、一行摘要、類別及地區標籤、投資者焦點徽章、方向（利好／利淡／中性）、來源數目、時間。撳入顯示詳細：事實、來源說法、AI 解讀（不同底色區分）、投資者分析卡、相關酒款連結、所有原文連結。
 - 搜尋框：FTS5。
 
-> 新聞頁只限 Admin 及 Viewer，不做公開新聞網站。
 
 ---
 
@@ -397,7 +397,7 @@ CREATE TABLE job_logs (
 
 ## 8. 保安要求
 
-- `/`（新聞頁）、`/scores`、`/admin*`、`/api/*`（分享 API 除外）全部由 Cloudflare Access 保護，只容許名單內 email；Worker 內再驗證 Access JWT（`Cf-Access-Jwt-Assertion`，用 Access 的公開金鑰），不通過即 403。
+- `/scores`、`/admin*`、`/api/admin/*` 等非公開路徑（新聞頁 `/` 及 `/api/news*` 自 2026-11-04 起公開，見 §4.7）全部由 Cloudflare Access 保護，只容許名單內 email；Worker 內再驗證 Access JWT（`Cf-Access-Jwt-Assertion`，用 Access 的公開金鑰），不通過即 403。
 
 ### 8.1 角色
 
@@ -406,7 +406,7 @@ CREATE TABLE job_logs (
 - **Viewer 不可以**：任何寫入（CRUD、CSV 匯入、來源管理、設定）、建立或撤銷分享連結、看購入成本、私人備註、來源證明、非公開價格、目標價／最低出售價、工作紀錄及成本。
 - 權限在 **Worker API 層** 檢查並在查詢時就不取出敏感欄位，不可只靠前端隱藏。
 - 每日 email 簡報只寄 Admin。
-- 只有 `/s/:token`、`/api/share/:token`、靜態資源公開。
+- 只有新聞頁（`/`、`/api/news*`）、`/s/:token`、`/api/share/:token`、靜態資源公開。
 - 所有 SQL 用 D1 prepared statements（`bind`），不拼接字串。
 - 所有輸出到 HTML 的文字一律轉義（新聞內容來自外部，視為不可信）；AI 回應同樣視為不可信資料。
 - 收集新聞只 fetch `sources.feed_url` 內的網址，禁止根據新聞內容去 fetch 其他 URL（防 SSRF）。

@@ -28,7 +28,6 @@ async function load() {
   try {
     const d = await api(`news?${p}`);
     state.pages = Math.max(1, Math.ceil(d.total / d.pageSize));
-    $('mine-count').textContent = d.affectingMine;
     $('count').textContent = `${d.total} ${t('items')}`;
     $('pageinfo').textContent = `${state.page} / ${state.pages}`;
     $('prev').disabled = state.page <= 1;
@@ -119,7 +118,6 @@ function init() {
   initTheme($('theme'));
 
   $('f-view').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setView(b.dataset.v); });
-  $('mine-bar').addEventListener('click', () => setView('mine'));
   for (const [id, key] of [['f-region', 'region'], ['f-category', 'category'], ['f-from', 'from'], ['f-to', 'to']]) {
     $(id).addEventListener('change', (e) => { state[key] = e.target.value; state.page = 1; load(); });
   }
@@ -142,10 +140,6 @@ function init() {
     load();
   });
 
-  api('me').then((me) => {
-    $('who').textContent = me.email;
-    if (me.role === 'admin') $('nav-admin').classList.remove('hidden');
-  }).catch(() => {});
   load();
 }
 
