@@ -58,10 +58,9 @@ export default {
 
     if (PUBLIC_ASSET.test(path)) return env.ASSETS.fetch(request);
 
-    // Owner decision (2026-11-04/05): news, whisky and trends pages and their read APIs are public.
-    // Members' pages (admin, calculator) and APIs stay behind Access and are re-checked here (PLAN §8).
-    const isMemberPath = path === '/admin' || path.startsWith('/admin/') || path.startsWith('/api/admin')
-      || path === '/calculator' || path === '/calculator/';
+    // Owner decision (2026-11-04/05): news, whisky, trends and the calculator are public.
+    // Admin pages and admin APIs stay behind Access and are re-checked here (PLAN §8).
+    const isMemberPath = path === '/admin' || path.startsWith('/admin/') || path.startsWith('/api/admin');
     const user = isMemberPath ? await authenticate(request, env) : null;
     if (isMemberPath && !user) return new Response('Forbidden', { status: 403 });
 

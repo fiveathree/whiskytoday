@@ -157,7 +157,6 @@ async function initAdminTools() {
   } catch { return; }
   $('collect').classList.remove('hidden');
   $('nav-admin').classList.remove('hidden');
-  $('nav-calc').classList.remove('hidden');
   $('collect').addEventListener('click', async () => {
     const btn = $('collect');
     btn.disabled = true;

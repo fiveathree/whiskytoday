@@ -209,6 +209,6 @@ $('table').onclick = (ev) => {
 };
 
 initTheme($('theme'));
-try { server = await api('admin/calc'); } catch { /* fall back to Excel defaults */ }
+try { server = await api('calc'); } catch { /* fall back to Excel defaults */ }
 REGIONS.forEach(reset);
 show('hk');

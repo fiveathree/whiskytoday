@@ -41,6 +41,7 @@ async function route(request, env, ctx, user, url) {
     if (parts[0] === 'whisky' && method === 'GET' && !parts[1]) return listCatalog(env, url);
     if (parts[0] === 'whisky' && method === 'GET' && parts[1]) return getCatalogItem(env, decodeURIComponent(parts[1]));
     if (parts[0] === 'whisky-media' && method === 'GET' && parts[1]) return getPublicMedia(env, parts[1]);
+    if (parts[0] === 'calc' && method === 'GET' && !parts[1]) return json(await calcDefaults(env));
 
     if (parts[0] === 'admin') {
       if (!user) return json({ error: 'forbidden' }, 403);
@@ -195,7 +196,6 @@ async function adminRoute(request, env, ctx, p, url, user) {
   const m = request.method;
 
   if (p[0] === 'me' && m === 'GET') return json(user);
-  if (p[0] === 'calc' && m === 'GET') return json(await calcDefaults(env));
   const ed = await editionsRoute(request, env, p, url);
   if (ed) return ed;
 

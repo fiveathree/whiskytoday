@@ -397,8 +397,8 @@ CREATE TABLE job_logs (
 
 ## 8. 保安要求
 
-- 2026-11-05 項目擁有人再確認：新聞頁（`/`）、酒款目錄（`/whisky`）、市場趨勢（`/trends`）及其**只讀** API 維持公開（加 `noindex`，只輸出公開欄位）。分享頁（`/s/:token`、`/api/share/:token`）及靜態資源同樣公開。
-- 其餘所有頁面及 API（包括 `/calculator`、設定、後台、所有寫入）由 Cloudflare Access 保護，只容許名單內 email；Worker 內再驗證 Access JWT（`Cf-Access-Jwt-Assertion`，用 Access 的公開金鑰），不通過即 403。
+- 2026-11-05 項目擁有人決定：新聞頁（`/`）、酒款目錄（`/whisky`）、市場趨勢（`/trends`）、進口成本計算器（`/calculator`，包括其預設值）及其**只讀** API 全部公開，毋須登入（加 `noindex`）。分享頁（`/s/:token`、`/api/share/:token`）及靜態資源同樣公開。
+- 其餘所有頁面及 API（設定、後台、所有寫入）由 Cloudflare Access 保護，只容許名單內 email；Worker 內再驗證 Access JWT（`Cf-Access-Jwt-Assertion`，用 Access 的公開金鑰），不通過即 403。
 
 ### 8.1 權限：只有一種成員
 
@@ -507,7 +507,7 @@ CREATE TABLE job_logs (
 
 客戶現時用一份 Excel（英國威士忌進口六地動態價格計算表）計算由英國進口威士忌到各地的含稅成本。要把它做成網頁：**有公式的欄位自動計，無公式的欄位由用戶填**，六個地區（Excel 每個 sheet）都要做。
 
-- **用戶**：內部成員（含 Sales 團隊），不給客戶或 Distributor。
+- **用戶**：~~內部成員（含 Sales 團隊），不給客戶或 Distributor。~~ 2026-11-05 項目擁有人決定：計算器公開，任何人毋須登入都可使用；預設值只可在後台設定頁修改。
 - **即計即用，不儲存**：不寫入 D1、不記錄用戶輸入。所有計算在瀏覽器以純 JS 完成，伺服器只提供預設參數。
 - 頁面重新整理後回到預設值。可以「下載 CSV」及「列印」（`window.print()`，A4 橫向），兩者都只在瀏覽器內完成。
 
@@ -584,7 +584,7 @@ Excel 現有預設值（作為 seed）：
 
 ### 13.9 驗收
 
-- 登入成員可打開 `/calculator`；未登入被擋。
+- 任何人毋須登入可打開 `/calculator`（2026-11-05 項目擁有人決定）。
 - 六個地區用 Excel 示範數字計出與 Excel 相同的結果（13.7 修正項除外）。
 - 改匯率、稅率、成本計算器任何一格，全頁即時更新。
 - 重新整理後回到預設值；伺服器沒有任何寫入。
