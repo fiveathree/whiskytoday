@@ -48,7 +48,7 @@ flowchart LR
   W --> R2
   W --> S
   W -->|"排程時每批 8 則"| I --> D1
-  W -->|"RSS/Atom（22 個）"| F["新聞來源"]
+  W -->|"RSS/Atom（23 個）"| F["新聞來源"]
   I -->|"Messages API"| C["Claude API<br/>claude-sonnet-5-5"]
   W -->|"每日 00:00"| H["HMRC uktradeinfo API"]
   W -->|"每日 00:00"| X["Frankfurter（ECB）<br/>ExchangeRate-API（TWD）"]
@@ -89,7 +89,7 @@ flowchart LR
 ## 3. 收集緊甚麼資料
 
 ### 3.1 新聞（每日 3 次＋手動）
-- **22 個公開 RSS/Atom 來源**（清單及剔除原因見 [`docs/SOURCES.md`](SOURCES.md)）：蘇格蘭、愛爾蘭、日本（1 個）、美國、全球業界、Bonhams 新聞稿、美國烈酒協會（DISCUS）等。台灣／香港未有合適來源。
+- **23 個公開 RSS/Atom 來源**（清單及剔除原因見 [`docs/SOURCES.md`](SOURCES.md)）：蘇格蘭、愛爾蘭、日本（1 個）、美國、全球業界、Bonhams 新聞稿、美國烈酒協會（DISCUS）等。台灣／香港未有合適來源。
 - 只存**標題、連結、日期、600 字以內摘要片段**，不存全文；只讀取來源表內的 feed 網址（不跟隨文章內連結，防 SSRF）。
 - 綜合酒類來源用關鍵字過濾（whisky、bourbon、scotch 等），只把相關文章交給 AI。
 - 每篇（每個事件）由 Claude 輸出：中英標題、中英摘要、類別（14 類）、重要性 1–5、提及的酒廠／品牌／公司、事實（附連結）、來源說法（未證實）、AI 解讀、投資者分析卡（利好／利淡、短期／長期、證據、推論）。

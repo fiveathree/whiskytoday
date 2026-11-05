@@ -173,11 +173,28 @@ function renderInfo(e, id, listPanel) {
 }
 
 let priceCurrency = 'HKD';
+
+// Shortcuts that open other sites' search pages in a new tab for manual research. Nothing is fetched or
+// copied by the system: Whisky Hunter's terms forbid commercial reuse of its prices, wsky1 says its data is
+// "not licensed", so only sales the admin has checked are typed in here, with a source link.
+function priceLookup(e) {
+  const q = String(e.name_en || '').replace(/^\[Demo\]\s*/i, '').trim();
+  const enc = encodeURIComponent(q);
+  const links = [
+    ['WhiskyAuction.com', `https://www.google.com/search?q=${encodeURIComponent(`site:whiskyauction.com ${q}`)}`],
+    ['Whisky Hunter', `https://whiskyhunter.net/past/?search=${enc}`],
+    ['wsky1', `https://www.google.com/search?q=${encodeURIComponent(`site:wsky1.com ${q}`)}`],
+    ['Google 拍賣結果', `https://www.google.com/search?q=${encodeURIComponent(`"${q}" auction result`)}`],
+  ];
+  return `<div class="toolbar lookup"><span class="note">查價捷徑：</span>${links.map(([n, u]) => `<a class="btn small" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(n)} ↗</a>`).join('')}
+    <span class="note">只供你自己查閱。請只輸入你核實過嘅成交，並填返來源連結；唔好大量複製其他網站嘅數據（Whisky Hunter 條款禁止商業轉載）。</span></div>`;
+}
 function renderPrices(data, id, done) {
   const ps = data.prices;
   const valueOf = (p) => (priceCurrency === 'HKD' ? p.hkd_minor : priceCurrency === 'USD' ? p.usd_minor : p.amount_minor);
   const curLabel = (p) => (priceCurrency === 'orig' ? p.currency : priceCurrency);
   $('ed-body').innerHTML = `
+    ${priceLookup(data.edition)}
     <div class="toolbar">
       <span class="note">幣種：</span>
       ${['HKD', 'USD', 'orig'].map((c) => `<button class="btn small${c === priceCurrency ? ' solid' : ''}" data-cur="${c}">${c === 'orig' ? '原幣' : c}</button>`).join('')}

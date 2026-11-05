@@ -2,7 +2,7 @@
 
 做法：用程式逐個讀取候選 RSS/Atom（User-Agent `WhiskyTodayFeedCheck/1.0`），確認回應係 RSS/Atom、有項目、最近半年有更新。只讀標題、連結、日期、摘要片段，不存全文。
 
-## 通過（22 個，已寫入 `migrations/0002_sources.sql`）
+## 通過（23 個：22 個寫入 `migrations/0002_sources.sql`，Whisky Boys 2026-11-05 加入 `0007_more_sources.sql`）
 
 | 來源 | 地區 | 類型 | 備註 |
 |---|---|---|---|
@@ -28,6 +28,7 @@
 | Drinks International | 全球 | news | 關鍵字過濾 |
 | Drinks Retailing News | 英國 | news | 關鍵字過濾 |
 | Bonhams 新聞稿 | 全球 | auction | 關鍵字過濾，只留威士忌／烈酒拍賣 |
+| Whisky Boys | 蘇格蘭 | blog | 2026-11-05 加入 |
 
 「關鍵字過濾」= 綜合酒類來源，只有標題或摘要含威士忌相關字眼先會交俾 AI，慳成本。
 
@@ -48,6 +49,8 @@
 | The Drinks Business | RSS 拒絕程式讀取（403） |
 | Whisky Magazine（英文版） | 冇 RSS（404） |
 | Fred Minnick | 連線逾時 |
+| Whiskyfun | 冇 RSS（2026-11-05 再查） |
+| WhiskyCast Podcast（libsyn） | 同已有 WhiskyCast 重複 |
 | Master of Malt blog | 拒絕程式讀取（429） |
 | WhiskyStats、Whiskybase | 拒絕程式讀取（403） |
 
