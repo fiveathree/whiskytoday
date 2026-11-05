@@ -98,15 +98,40 @@ function renderNews() {
   ];
   legend($('lg-sent'), sSeries);
   stackedChart($('c-sent'), sy, sSeries, { fmt: (v) => String(Math.round(v)), xFmt: (s) => s.slice(2).replace('-', '/'), diverging: true, ariaLabel: t('c.sent') });
+  // Totals by article (each article once), including neutral and items the AI gave no direction.
+  const tot = (d) => sm.filter((r) => (d === 'none' ? !r.dir : r.dir === d)).reduce((a, r) => a + r.n, 0);
+  $('sent-sum').textContent = `${t('sent.sumPrefix')} ${t('bullish')} ${tot('bullish')}・${t('bearish')} ${tot('bearish')}・${t('neutral')} ${tot('neutral')}${tot('none') ? `・${t('sent.none')} ${tot('none')}` : ''}`;
 
+  // Per distillery / brand: counted once per article that names it, with the AI's direction for that name.
   const ents = data.news.entities;
   $('c-ent').innerHTML = ents.length
-    ? ents.map((e) => {
-      const dir = e.net > 0 ? 'bullish' : e.net < 0 ? 'bearish' : 'neutral';
-      return `<div class="ent"><span>${esc(getLang() === 'en' ? e.name_en : e.name_zh || e.name_en)}</span><span class="tag dir-${dir}">${esc(t(dir))}</span><span class="n">${e.n}</span></div>`;
-    }).join('')
+    ? ents.map((e) => `<button type="button" class="ent" data-ent="${esc(e.id)}">
+        <span>${esc(getLang() === 'en' ? e.name_en : e.name_zh || e.name_en)}</span>
+        <span class="ent-counts"><span class="tag dir-bullish">${esc(t('bullish'))} ${e.bull}</span><span class="tag dir-bearish">${esc(t('bearish'))} ${e.bear}</span><span class="tag dir-neutral">${esc(t('neutral'))} ${e.neutral}</span></span>
+        <span class="n">${esc(t('ent.view'))} ›</span></button>`).join('')
     : `<p class="disclaimer">${esc(t('accumulating'))}</p>`;
+  $('rules-body').innerHTML = t('rules.html');
   $('cats-note').classList.toggle('hidden', yms.length >= 3);
+}
+
+// List the investor-focus articles behind one distillery / brand's counts.
+async function openEntity(id) {
+  let d;
+  try { d = await (await fetch(`/api/trends/entity/${encodeURIComponent(id)}`)).json(); } catch { return; }
+  if (!d?.entity) return;
+  const en = getLang() === 'en';
+  const L = (o, f) => (en ? o[`${f}_en`] || o[`${f}_zh`] : o[`${f}_zh`] || o[`${f}_en`]);
+  const dirName = (v) => (v > 0 ? 'bullish' : v < 0 ? 'bearish' : 'neutral');
+  const safe = (u) => (/^https?:\/\//i.test(String(u || '')) ? esc(u) : '#');
+  $('ent-title').textContent = `${en ? d.entity.name_en : d.entity.name_zh || d.entity.name_en} · ${t('ent.dlg')}`;
+  $('ent-body').innerHTML = d.articles.length ? d.articles.map((a) => `
+    <div class="block ${a.direction > 0 ? 'fact' : a.direction < 0 ? 'ai' : 'claim'}">
+      <h3><span class="tag dir-${dirName(a.direction)}">${esc(t(dirName(a.direction)))}</span> ${esc(String(a.d).slice(0, 10))}</h3>
+      <p style="margin:0 0 4px"><b>${esc(L(a, 'title'))}</b></p>
+      <p style="margin:0">${esc(L(a, 'summary') || '')}</p>
+      <p style="margin:4px 0 0"><a href="/#a=${encodeURIComponent(a.id)}">${esc(t('ent.analysis'))}</a> · <a href="${safe(a.canonical_url)}" target="_blank" rel="noopener noreferrer">${esc(t('ent.source'))} ↗</a></p>
+    </div>`).join('') : `<p class="disclaimer">${esc(t('ent.none'))}</p>`;
+  if (!$('ent-dlg').open) $('ent-dlg').showModal();
 }
 
 const RENDER = { exports: renderExports, markets: renderMarkets, news: renderNews };
@@ -126,6 +151,8 @@ async function init() {
   $('lang').textContent = getLang() === 'en' ? '中文' : 'EN';
   initTheme($('theme'));
   $('ttabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) show(b.dataset.tab); });
+  $('c-ent').addEventListener('click', (e) => { const b = e.target.closest('[data-ent]'); if (b) openEntity(b.dataset.ent); });
+  $('ent-close').addEventListener('click', () => $('ent-dlg').close());
   $('lang').addEventListener('click', () => {
     setLang(getLang() === 'en' ? 'zh' : 'en');
     applyI18n();

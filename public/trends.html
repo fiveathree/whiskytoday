@@ -81,11 +81,22 @@
           <h3 data-i18n="c.sent">投資者焦點：利好 vs 利淡（每月）</h3>
           <div class="viz-legend" id="lg-sent"></div>
           <div class="chart chart-short" id="c-sent"></div>
+          <p class="disclaimer" id="sent-sum"></p>
           <h3 style="margin-top:10px" data-i18n="c.ent">近 180 日最多投資者焦點消息嘅酒廠／品牌</h3>
+          <p class="disclaimer" data-i18n="ent.how"></p>
           <div id="c-ent" class="ent-list"></div>
+          <details class="score-help sent-rules"><summary data-i18n="rules.title">利好／利淡點樣分？</summary>
+            <div class="help-body" id="rules-body"></div></details>
         </div>
       </div>
     </section>
+
+    <dialog id="ent-dlg" class="wide" aria-labelledby="ent-title">
+      <div class="dlg">
+        <div class="dlg-head"><h2 id="ent-title"></h2><button class="close" type="button" id="ent-close" aria-label="Close">×</button></div>
+        <div class="dlg-body" id="ent-body"></div>
+      </div>
+    </dialog>
 
     <footer class="trends-foot">
       <span id="src"></span>

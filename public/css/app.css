@@ -216,8 +216,14 @@ form.inline .field { width: auto; flex: 1 1 150px; }
 .viz-tip b { margin-left: auto; padding-left: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .viz-tip-h { color: var(--faint); margin-bottom: 4px; }
 .ent-list { display: grid; gap: 4px; overflow: auto; }
-.ent { display: grid; grid-template-columns: 1fr auto 28px; gap: 8px; align-items: center; font-size: 13px; padding: 3px 0; border-bottom: 1px solid var(--gold-faint); }
-.ent .n { text-align: right; color: var(--faint); font-variant-numeric: tabular-nums; }
+.ent { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; font-size: 13px; padding: 5px 2px; border: 0; border-bottom: 1px solid var(--gold-faint); background: none; color: inherit; text-align: left; cursor: pointer; width: 100%; }
+.ent:hover { background: var(--gold-faint); }
+.ent-counts { display: flex; gap: 4px; }
+.ent-counts .tag { font-size: 11px; padding: 0 6px; }
+.sent-rules { margin-top: 8px; flex: none; }
+.sent-rules .help-body { max-height: 30vh; }
+.chart-card .ent-list { flex: 0 1 auto; min-height: 90px; max-height: 200px; }
+.ent .n { text-align: right; color: var(--gold); font-size: 12px; white-space: nowrap; }
 .trends-foot { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; color: var(--faint); font-size: 11px; }
 .print-only { display: none; }
 

@@ -142,6 +142,9 @@ function init() {
 
   initAdminTools();
   load();
+  // Deep link from other pages: /#a=<article id> opens that article's detail.
+  const m = location.hash.match(/^#a=([\w-]+)$/);
+  if (m) openDetail(m[1]);
 }
 
 // The collect button is only for a signed-in admin. /api/admin/* sits behind Access, so an anonymous

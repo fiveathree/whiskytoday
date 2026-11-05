@@ -35,7 +35,8 @@ async function route(request, env, ctx, user, url) {
   {
     if (parts[0] === 'news' && method === 'GET' && !parts[1]) return listNews(env, url);
     if (parts[0] === 'news' && method === 'GET' && parts[1]) return getNews(env, parts[1]);
-    if (parts[0] === 'trends' && method === 'GET') return getTrends(env);
+    if (parts[0] === 'trends' && parts[1] === 'entity' && parts[2] && method === 'GET') return getTrendEntity(env, parts[2]);
+    if (parts[0] === 'trends' && method === 'GET' && !parts[1]) return getTrends(env);
     if (parts[0] === 'whisky' && method === 'GET' && !parts[1]) return listCatalog(env, url);
     if (parts[0] === 'whisky' && method === 'GET' && parts[1]) return getCatalogItem(env, decodeURIComponent(parts[1]));
     if (parts[0] === 'whisky-media' && method === 'GET' && parts[1]) return getPublicMedia(env, parts[1]);
@@ -46,6 +47,21 @@ async function route(request, env, ctx, user, url) {
     }
     return json({ error: 'not found' }, 404);
   }
+}
+
+// Investor-focus news behind one entity's bullish / bearish count on the trends page (last 180 days).
+async function getTrendEntity(env, id) {
+  const e = await env.DB.prepare('SELECT id, name_en, name_zh FROM entities WHERE id = ?').bind(String(id).slice(0, 80)).first();
+  if (!e) return json({ error: 'not found' }, 404);
+  const since = new Date(Date.now() - 180 * 86400_000).toISOString();
+  const { results } = await env.DB.prepare(
+    `SELECT a.id, a.title_zh, a.title_en, a.summary_zh, a.summary_en, a.category, a.importance, a.canonical_url,
+       COALESCE(a.published_at, a.fetched_at) AS d, ae.direction
+     FROM article_entities ae JOIN articles a ON a.id = ae.article_id
+     WHERE ae.entity_id = ? AND a.status = 'published' AND a.investor_focus = 1 AND COALESCE(a.published_at, a.fetched_at) >= ?
+     ORDER BY d DESC LIMIT 50`,
+  ).bind(e.id, since).all();
+  return json({ entity: e, articles: results });
 }
 
 // Market trends for the public trends page: HMRC export statistics plus our own news data.
@@ -77,7 +93,9 @@ async function getTrends(env) {
         json_extract(investor_card_json, '$.direction') AS dir, COUNT(*) AS n
       FROM articles WHERE status = 'published' AND investor_focus = 1 AND COALESCE(published_at, fetched_at) >= ?
       GROUP BY ym, dir ORDER BY ym`).bind(since365).all(),
-    env.DB.prepare(`SELECT e.name_en, e.name_zh, e.type, COUNT(*) AS n, SUM(COALESCE(ae.direction, 0)) AS net
+    env.DB.prepare(`SELECT e.id, e.name_en, e.name_zh, e.type, COUNT(*) AS n, SUM(COALESCE(ae.direction, 0)) AS net,
+        SUM(CASE WHEN ae.direction > 0 THEN 1 ELSE 0 END) AS bull, SUM(CASE WHEN ae.direction < 0 THEN 1 ELSE 0 END) AS bear,
+        SUM(CASE WHEN COALESCE(ae.direction, 0) = 0 THEN 1 ELSE 0 END) AS neutral
       FROM article_entities ae JOIN entities e ON e.id = ae.entity_id JOIN articles a ON a.id = ae.article_id
       WHERE a.status = 'published' AND a.investor_focus = 1 AND COALESCE(a.published_at, a.fetched_at) >= ?
       GROUP BY e.id ORDER BY n DESC, net DESC LIMIT 10`).bind(since180).all(),
