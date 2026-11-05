@@ -82,11 +82,13 @@
           <div class="viz-legend" id="lg-sent"></div>
           <div class="chart chart-short" id="c-sent"></div>
           <p class="disclaimer" id="sent-sum"></p>
-          <h3 style="margin-top:10px" data-i18n="c.ent">近 180 日最多投資者焦點消息嘅酒廠／品牌</h3>
-          <p class="disclaimer" data-i18n="ent.how"></p>
+          <h3 class="with-info" style="margin-top:10px"><span data-i18n="c.ent">近 180 日最多投資者焦點消息嘅酒廠／品牌</span>
+            <button type="button" class="info-btn" id="rules-btn" aria-haspopup="dialog" aria-controls="rules-pop" data-i18n-label="rules.title" aria-label="利好／利淡點樣分？">i</button></h3>
           <div id="c-ent" class="ent-list"></div>
-          <details class="score-help sent-rules"><summary data-i18n="rules.title">利好／利淡點樣分？</summary>
-            <div class="help-body" id="rules-body"></div></details>
+          <div class="info-pop" id="rules-pop" role="dialog" aria-labelledby="rules-pop-title" hidden>
+            <div class="info-pop-head"><b id="rules-pop-title" data-i18n="rules.title">利好／利淡點樣分？</b><button type="button" class="close" id="rules-close" aria-label="Close">×</button></div>
+            <div class="info-pop-body"><p class="disclaimer" data-i18n="ent.how"></p><div id="rules-body"></div></div>
+          </div>
         </div>
       </div>
     </section>

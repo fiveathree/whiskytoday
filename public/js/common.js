@@ -109,6 +109,7 @@ export const pick = (pair) => (pair ? pair[lang === 'en' ? 1 : 0] : '');
 export function applyI18n(root = document) {
   root.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
   root.querySelectorAll('[data-i18n-ph]').forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
+  root.querySelectorAll('[data-i18n-label]').forEach((el) => { el.setAttribute('aria-label', t(el.dataset.i18nLabel)); });
 }
 
 // Dark / light theme toggle; the choice is remembered per browser (set early by an inline script in <head>).

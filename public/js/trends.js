@@ -134,6 +134,37 @@ async function openEntity(id) {
   if (!$('ent-dlg').open) $('ent-dlg').showModal();
 }
 
+// "i" button: hover opens the rules on a desktop (mouse); tap opens / closes on a phone.
+// Fixed size; placed under the button on wide screens, centred on phones.
+function initRulesPopover() {
+  const btn = $('rules-btn');
+  const pop = $('rules-pop');
+  let hideTimer;
+  const place = () => {
+    if (window.innerWidth <= 860) { pop.classList.add('centered'); pop.style.left = ''; pop.style.top = ''; return; }
+    pop.classList.remove('centered');
+    const r = btn.getBoundingClientRect();
+    const w = pop.offsetWidth;
+    pop.style.left = `${Math.max(12, Math.min(window.innerWidth - w - 12, r.right - w))}px`;
+    const below = r.bottom + 8;
+    pop.style.top = `${below + pop.offsetHeight > window.innerHeight - 12 ? Math.max(12, r.top - pop.offsetHeight - 8) : below}px`;
+  };
+  const open = () => { clearTimeout(hideTimer); pop.hidden = false; place(); btn.setAttribute('aria-expanded', 'true'); };
+  const close = () => { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
+  const hoverable = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  if (hoverable) {
+    btn.addEventListener('mouseenter', open);
+    btn.addEventListener('mouseleave', () => { hideTimer = setTimeout(close, 200); });
+    pop.addEventListener('mouseenter', () => clearTimeout(hideTimer));
+    pop.addEventListener('mouseleave', () => { hideTimer = setTimeout(close, 200); });
+  }
+  btn.addEventListener('click', (e) => { e.stopPropagation(); if (pop.hidden) open(); else close(); });
+  $('rules-close').addEventListener('click', close);
+  document.addEventListener('click', (e) => { if (!pop.hidden && !pop.contains(e.target)) close(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+  window.addEventListener('resize', () => { if (!pop.hidden) place(); });
+}
+
 const RENDER = { exports: renderExports, markets: renderMarkets, news: renderNews };
 
 function show(tab) {
@@ -153,6 +184,7 @@ async function init() {
   $('ttabs').addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) show(b.dataset.tab); });
   $('c-ent').addEventListener('click', (e) => { const b = e.target.closest('[data-ent]'); if (b) openEntity(b.dataset.ent); });
   $('ent-close').addEventListener('click', () => $('ent-dlg').close());
+  initRulesPopover();
   $('lang').addEventListener('click', () => {
     setLang(getLang() === 'en' ? 'zh' : 'en');
     applyI18n();

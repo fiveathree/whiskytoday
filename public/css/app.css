@@ -319,6 +319,22 @@ details.bottle form { margin-top: 10px; }
 .help-body p { margin: 0; }
 .help-table td, .help-table th { vertical-align: top; }
 
+/* Info "i" button with a fixed-size popover */
+.with-info { display: flex; align-items: center; gap: 8px; }
+.info-btn { flex: none; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--gold-dim); background: none; color: var(--gold);
+  font: italic 600 12px/1 var(--serif); cursor: pointer; display: inline-grid; place-items: center; padding: 0; }
+.info-btn:hover, .info-btn[aria-expanded="true"] { background: var(--gold); color: var(--bg-raise); }
+.info-pop { position: fixed; z-index: 60; width: min(440px, calc(100vw - 32px)); height: min(440px, 70vh); display: flex; flex-direction: column;
+  background: var(--bg-raise); border: 1px solid var(--gold-dim); border-radius: var(--radius); box-shadow: 0 8px 28px rgba(0, 0, 0, .22); }
+.info-pop[hidden] { display: none; }
+.info-pop.centered { left: 50% !important; top: 50% !important; transform: translate(-50%, -50%); }
+.info-pop-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--gold-faint); font-size: 14px; }
+.info-pop-head .close { font-size: 22px; }
+.info-pop-body { overflow: auto; padding: 10px 14px 14px; font-size: 13px; line-height: 1.6; }
+.info-pop-body h4 { margin: 10px 0 4px; font-size: 13px; }
+.info-pop-body ul { margin: 0; padding-left: 18px; }
+.info-pop-body p { margin: 0 0 6px; }
+
 .admin-link { color: var(--muted); font-size: 13px; text-decoration: none; letter-spacing: .06em; }
 .admin-link:hover { color: var(--gold); }
 
