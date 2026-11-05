@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-Hant" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Whisky Today · 進口成本計算器</title>
+<meta property="og:title" content="Whisky Today">
+<meta property="og:description" content="Private whisky intelligence">
+<meta property="og:image" content="/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@500&display=swap">
+<link rel="stylesheet" href="/css/app.css">
+<script>try{if(localStorage.getItem("wt-theme")==="dark")delete document.documentElement.dataset.theme}catch(e){}</script>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <a class="brand" href="/"><span class="word">WHISKY TODAY</span><span class="rule"></span></a>
+    <nav class="topnav">
+      <a href="/">每日情報</a>
+      <a href="/whisky">酒款</a>
+      <a href="/trends">市場趨勢</a>
+      <a href="/calculator" aria-current="page">計算器</a>
+      <a href="/admin">後台</a>
+    </nav>
+    <span class="spacer"></span>
+    <button class="theme" id="theme" type="button"></button>
+  </header>
+
+  <div class="calc">
+    <div class="calc-head">
+      <h1>進口成本計算器</h1>
+      <div class="tabs" role="tablist" id="regions"></div>
+      <span class="spacer"></span>
+      <label class="calc-toggle"><input type="checkbox" class="switch" id="show-gbp"> 顯示含稅價（GBP）</label>
+      <button class="btn small" id="csv" type="button">下載 CSV</button>
+      <button class="btn small" id="print" type="button">列印</button>
+    </div>
+    <div class="calc-body">
+      <aside class="calc-side" id="side"></aside>
+      <section class="calc-main">
+        <p class="print-only" id="print-params"></p>
+        <div class="table-wrap"><table class="calc-table" id="table"></table></div>
+        <div class="toolbar"><button class="btn small" id="add" type="button">＋ 加一行</button>
+          <span class="note">即計即用，唔會儲存；重新整理會回到預設值。</span></div>
+      </section>
+    </div>
+  </div>
+</div>
+<script type="module" src="/js/calculator.js"></script>
+</body>
+</html>

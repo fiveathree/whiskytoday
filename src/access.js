@@ -1,4 +1,4 @@
-// Verify the Cloudflare Access JWT and work out the caller's role (PLAN.md §8, §8.1).
+// Verify the Cloudflare Access JWT (PLAN.md §8, §8.1). Everyone Access lets in is a member with full rights.
 
 let jwksCache = { at: 0, keys: null };
 
@@ -17,11 +17,11 @@ async function getKeys(teamDomain) {
   return keys;
 }
 
-// Returns { email, role: 'admin' | 'viewer' } or null when the token is missing or invalid.
+// Returns { email, role: 'member' } or null when the token is missing or invalid.
 export async function authenticate(request, env) {
   // Local development only (`wrangler dev` with .dev.vars); never set DEV_USER_EMAIL in production.
   if (env.DEV_USER_EMAIL && ['localhost', '127.0.0.1'].includes(new URL(request.url).hostname)) {
-    return roleFor(env, env.DEV_USER_EMAIL);
+    return member(env.DEV_USER_EMAIL);
   }
   const token = request.headers.get('Cf-Access-Jwt-Assertion');
   if (!token || !env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD) return null;
@@ -55,11 +55,10 @@ export async function authenticate(request, env) {
   if (payload.iss !== `https://${env.ACCESS_TEAM_DOMAIN}`) return null;
   if (!payload.email) return null;
 
-  return roleFor(env, payload.email);
+  return member(payload.email);
 }
 
-function roleFor(env, rawEmail) {
-  const email = String(rawEmail).toLowerCase();
-  const admins = String(env.ADMIN_EMAILS || '').toLowerCase().split(',').map((s) => s.trim()).filter(Boolean);
-  return { email, role: admins.includes(email) ? 'admin' : 'viewer' };
+// One kind of member (PLAN §8.1): the Access policy email list is the only gate.
+function member(rawEmail) {
+  return { email: String(rawEmail).toLowerCase(), role: 'member' };
 }

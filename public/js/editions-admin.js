@@ -1,6 +1,7 @@
 // Admin: editions scan table, edition editor (details, prices + chart, returns, bottles, media, news), CSV import, settings.
 import { esc, safeUrl, api, toast, info } from './common.js';
 import { timeChart, signedBars, legend } from './charts.js';
+import { REGIONS, CURRENCY, REGION_NAMES, PARAMS, COST_LABELS, DEFAULTS as CALC_DEFAULTS } from './calc.js';
 
 const $ = (id) => document.getElementById(id);
 const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -482,6 +483,12 @@ export async function renderSettings(panel) {
       </fieldset>
       <div class="full form-actions"><button class="btn solid">儲存並重算所有評分</button></div>
     </form>
+    <h3 class="with-info" style="margin-top:18px">計算器預設值 ${info('計算器預設值', '<p>呢度改嘅係<b>所有成員</b>打開「計算器」時見到嘅預設稅率同成本（GBP）。</p><p>喺計算器頁直接改只影響嗰次計算，唔會儲存。</p><p>匯率唔喺度改：每日自動由公開匯率更新。</p>')}</h3>
+    <form id="calc-form" class="calc-set">
+      <select class="field" name="region" id="calc-region">${REGIONS.map((r) => `<option value="${r}">${REGION_NAMES[r]} ${CURRENCY[r]}</option>`).join('')}</select>
+      <div id="calc-fields" class="grid-form"></div>
+      <div class="form-actions"><button class="btn solid">儲存計算器預設值</button></div>
+    </form>
     <h3 class="with-info" style="margin-top:18px">示範資料（全部虛構） ${info('示範資料係咩？', '<p>⚠ 示範資料<b>全部係虛構</b>嘅：酒款、酒廠（例如「示範酒廠・格蘭摩拉」）、拍賣行（「示範拍賣行甲」）都唔存在。</p><p>價格係程式按每支酒預設嘅起始價同每年升幅，再加隨機上落自動砌出嚟，唔係真實成交。</p><p>只用嚟睇評分表、價格圖、回報圖同前台酒款頁嘅效果；名稱都有「示範」字樣。正式使用前請撳「清除示範資料」。</p>')}</h3>
     <div class="form-actions"><button class="btn" id="demo-load">載入示範資料</button><button class="btn danger" id="demo-clear">清除示範資料</button></div></div>`;
   $('set-form').onsubmit = async (ev) => {
@@ -489,6 +496,26 @@ export async function renderSettings(panel) {
     const fd = Object.fromEntries(new FormData(ev.target));
     const score_weights = Object.fromEntries(PART_LABELS.map(([k]) => [k, Number(fd[`w_${k}`])]));
     try { await api('admin/settings', { method: 'PATCH', body: { default_currency: fd.default_currency, exit_cost_pct: fd.exit_cost_pct, score_weights } }); settingsCache = null; toast('已儲存，評分已重算'); } catch (err) { toast(err.message); }
+  };
+  const calcVals = (r) => {
+    const saved = (() => { try { return JSON.parse(s[`calc.${r}`] || '{}'); } catch { return {}; } })();
+    return { ...CALC_DEFAULTS[r], ...saved, cost: saved.cost || CALC_DEFAULTS[r].cost };
+  };
+  const drawCalc = () => {
+    const r = $('calc-region').value;
+    const v = calcVals(r);
+    $('calc-fields').innerHTML = PARAMS[r].filter(([k]) => k !== 'fx').map(([k, label, unit]) => `<label>${esc(label)}${unit ? ` (${unit})` : ''}
+      <input class="field" name="${k}" data-unit="${unit}" inputmode="decimal" value="${unit === '%' ? +(v[k] * 100).toFixed(4) : v[k]}"></label>`).join('')
+      + COST_LABELS.map((l, i) => `<label>${l}（GBP）<input class="field" name="cost${i}" inputmode="decimal" value="${v.cost[i]}"></label>`).join('');
+  };
+  $('calc-region').onchange = drawCalc;
+  drawCalc();
+  $('calc-form').onsubmit = async (ev) => {
+    ev.preventDefault();
+    const r = $('calc-region').value;
+    const out = { cost: [0, 1, 2, 3].map((i) => Number(ev.target[`cost${i}`].value)) };
+    for (const el of $('calc-fields').querySelectorAll('input[data-unit]')) out[el.name] = el.dataset.unit === '%' ? Number(el.value) / 100 : Number(el.value);
+    try { await api('admin/settings', { method: 'PATCH', body: { calc: { [r]: out } } }); s[`calc.${r}`] = JSON.stringify(out); toast('已儲存計算器預設值'); } catch (err) { toast(err.message); }
   };
   $('demo-load').onclick = async () => { await api('admin/demo', { method: 'POST' }); toast('已載入示範資料'); };
   $('demo-clear').onclick = async () => { if (!window.confirm('清除所有示範酒款同價格？')) return; await api('admin/demo', { method: 'DELETE' }); toast('已清除'); };

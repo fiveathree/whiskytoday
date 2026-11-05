@@ -1,4 +1,4 @@
-// JSON API. /api/news* is public (owner decision 2026-11-04); /api/admin/* needs an Access admin,
+// JSON API. News, trends and whisky reads are public (owner decision 2026-11-04); /api/admin/* needs an Access member,
 // checked in worker.js and again here, not just hidden in the UI (PLAN §8.1).
 import { json, uid, nowIso } from './db.js';
 import { runCollection, manualFeeds, manualProcess } from './news.js';
@@ -6,6 +6,7 @@ import { sendDigest } from './digest.js';
 import { CATEGORIES } from './rules.js';
 import { editionsRoute } from './editions.js';
 import { listCatalog, getCatalogItem, getPublicMedia } from './catalog.js';
+import { calcDefaults } from './fx.js';
 
 const PAGE_SIZE = 10;
 const REGIONS = ['scotland', 'japan', 'usa', 'taiwan', 'hk_china', 'ireland', 'other'];
@@ -42,7 +43,7 @@ async function route(request, env, ctx, user, url) {
     if (parts[0] === 'whisky-media' && method === 'GET' && parts[1]) return getPublicMedia(env, parts[1]);
 
     if (parts[0] === 'admin') {
-      if (user?.role !== 'admin') return json({ error: 'forbidden' }, 403);
+      if (!user) return json({ error: 'forbidden' }, 403);
       return adminRoute(request, env, ctx, parts.slice(1), url, user);
     }
     return json({ error: 'not found' }, 404);
@@ -194,6 +195,7 @@ async function adminRoute(request, env, ctx, p, url, user) {
   const m = request.method;
 
   if (p[0] === 'me' && m === 'GET') return json(user);
+  if (p[0] === 'calc' && m === 'GET') return json(await calcDefaults(env));
   const ed = await editionsRoute(request, env, p, url);
   if (ed) return ed;
 

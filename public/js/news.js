@@ -147,17 +147,17 @@ function init() {
   if (m) openDetail(m[1]);
 }
 
-// The collect button is only for a signed-in admin. /api/admin/* sits behind Access, so an anonymous
+// The collect button is only for a signed-in member. /api/admin/* sits behind Access, so an anonymous
 // visitor gets a redirect to the login page (opaque with redirect: 'manual') and sees nothing.
 async function initAdminTools() {
   try {
     const res = await fetch('/api/admin/me', { redirect: 'manual', credentials: 'same-origin' });
     if (!res.ok) return;
-    const me = await res.json();
-    if (me.role !== 'admin') return;
+    if (!(await res.json()).email) return;
   } catch { return; }
   $('collect').classList.remove('hidden');
   $('nav-admin').classList.remove('hidden');
+  $('nav-calc').classList.remove('hidden');
   $('collect').addEventListener('click', async () => {
     const btn = $('collect');
     btn.disabled = true;

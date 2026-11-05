@@ -414,3 +414,66 @@ h3.with-info, p.with-info { display: flex; }
   .stat { min-width: 0; flex: 1 1 40%; padding: 8px 12px; }
   .stat .v { font-size: 20px; }
 }
+
+/* Import cost calculator (PLAN §13.2): region tabs on top, parameters left, wine table right */
+.calc { display: grid; grid-template-rows: auto 1fr; min-height: 0; min-width: 0; padding: 16px 28px; gap: 14px; page: landscape; }
+.calc-head { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+.calc-head h1 { font-size: 24px; }
+.calc-head .spacer { flex: 1; }
+.calc-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.calc-body { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 18px; min-height: 0; }
+.calc-side { overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+.calc-box { border: 1px solid var(--gold-faint); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 7px; }
+.calc-box h3 { font-size: 17px; }
+.calc-box-head { display: flex; align-items: center; justify-content: space-between; }
+.calc-field { display: grid; grid-template-columns: 1fr 92px; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
+.calc-field i { font-style: normal; color: var(--faint); }
+.calc-field.total { border-top: 1px solid var(--gold-faint); padding-top: 7px; color: var(--ivory); }
+.calc-field.total b { text-align: right; color: var(--gold); font-weight: 600; }
+.calc-note { line-height: 1.6; }
+.calc-main { display: grid; grid-template-rows: auto 1fr auto; gap: 10px; min-height: 0; }
+/* Editable cells get a thin gold frame; computed cells are plain text */
+.calc-table .field, .calc-field .field { border-color: var(--gold-dim); padding: 4px 7px; font-size: 13px; background: transparent; }
+.calc-table .field.num, .calc-field .field.num { text-align: right; font-variant-numeric: tabular-nums; }
+.calc-table .field.name { min-width: 120px; }
+.calc-table td { padding: 5px 6px; white-space: nowrap; }
+.calc-table th.num { text-align: right; white-space: normal; min-width: 78px; line-height: 1.3; }
+.calc-table td:nth-child(2) .field { width: 70px; }
+.calc-table td:nth-child(4) .field, .calc-table td:nth-child(5) .field { width: 68px; }
+.calc-table td.out { color: var(--ivory); }
+.calc-table tfoot td { border-top: 1px solid var(--gold-dim); font-weight: 600; color: var(--gold); background: var(--bg-raise); position: sticky; bottom: 0; }
+.calc-table thead th { position: sticky; top: 0; z-index: 1; }
+.price-wrap { display: flex; gap: 4px; align-items: center; }
+.price-wrap .field { width: 86px; }
+.price-wrap .field::placeholder { color: var(--muted); opacity: 1; }
+.expand { background: none; border: 1px solid var(--gold-faint); border-radius: var(--radius); color: var(--gold); cursor: pointer; padding: 2px 6px; font-size: 11px; }
+.mode { display: block; font-size: 10.5px; color: var(--faint); text-align: right; padding-right: 30px; }
+.cost-row td { background: var(--claim-bg); }
+.cost-grid { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.cost-grid label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.cost-grid .field { width: 80px; }
+.del { padding: 1px 8px; }
+
+@page landscape { size: A4 landscape; margin: 10mm; }
+@media print {
+  .calc { display: block; padding: 0; }
+  .calc-side, .calc-head .tabs, .calc-head .btn, .calc-toggle, #add, .calc-main .toolbar, .expand, .del, .cost-row { display: none !important; }
+  .calc-main { display: block; }
+  .calc-main .print-only { font-size: 11px; }
+  .calc .table-wrap { overflow: visible; border: 0; }
+  .calc-table { font-size: 9.5px; }
+  .calc-table th { font-size: 8px; padding: 4px; }
+  .calc-table td { padding: 3px 4px; }
+  .calc-table .field { border: 0; padding: 0; font-size: 9.5px; width: auto !important; min-width: 0; }
+  .mode { padding-right: 0; }
+}
+
+@media (max-width: 860px) {
+  .shell:has(.calc) { height: auto; min-height: 100dvh; overflow: visible; }
+  .calc { padding: 10px 16px; display: block; }
+  .calc-head { gap: 10px; margin-bottom: 10px; }
+  .calc-head .tabs { order: 3; width: 100%; }
+  .calc-body { grid-template-columns: minmax(0, 1fr); }
+  .calc-main { min-width: 0; }
+  .calc-main .table-wrap { max-height: 70dvh; }
+}

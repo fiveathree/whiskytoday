@@ -40,6 +40,5 @@ enabled = true
 #   ANTHROPIC_API_KEY  Claude API key
 #   ACCESS_TEAM_DOMAIN e.g. yourteam.cloudflareaccess.com
 #   ACCESS_AUD         Application Audience (AUD) tag of the Access application
-#   ADMIN_EMAILS       comma-separated admin emails
 #   DIGEST_TO          verified destination address for the daily briefing
 #   DIGEST_FROM        sender address on your Email Routing domain

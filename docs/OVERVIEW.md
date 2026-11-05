@@ -39,7 +39,7 @@ flowchart LR
     I["Internal RPC entrypoint<br/>（SELF 自我綁定）"]
     D1[("D1 SQLite<br/>whiskytoday")]
     R2[("R2：whiskytoday-media<br/>相片／證書（私人 bucket）")]
-    A["Cloudflare Access<br/>只保護 /admin、/api/admin"]
+    A["Cloudflare Access<br/>保護 /admin、/calculator、/api/admin"]
     S["Static Assets<br/>public/"]
   end
   U["訪客／客戶"] -->|"/ /whisky /trends"| W
@@ -60,7 +60,7 @@ flowchart LR
 | 資料庫 | Cloudflare D1（SQLite），FTS5 trigram 全文搜尋 | 6 個 migration（`migrations/`） |
 | 檔案 | Cloudflare R2，私人 bucket | 公開相片經 Worker 檢查 `is_public` 才回傳 |
 | 排程 | Cron Triggers：UTC 16:00、23:00、11:00＝香港 00:00、07:00、19:00 | 00:00 另更新匯率及出口數據 |
-| 登入 | Cloudflare Access（self-hosted app，路徑 `admin`、`api/admin`，policy＝Cloudflare 帳戶成員） | Worker 內再驗證 `Cf-Access-Jwt-Assertion`（RS256、AUD、issuer、到期），並以 `ADMIN_EMAILS` 判斷 Admin |
+| 登入 | Cloudflare Access（self-hosted app，路徑 `admin`、`calculator`、`api/admin`，policy＝成員 email 名單） | Worker 內再驗證 `Cf-Access-Jwt-Assertion`（RS256、AUD、issuer、到期）；只有一種成員，權限相同（PLAN §8.1） |
 | AI | Anthropic Claude API，官方 SDK `@anthropic-ai/sdk`；模型 `claude-sonnet-5-5`（存於 `settings`，可改） | 結構化輸出（JSON schema）；拒絕時用 server-side fallback |
 | 圖表 | 自寫原生 SVG（`public/js/charts.js`） | 色盤經 dataviz validator 驗證（淺色及深色、色盲分辨） |
 | 部署 | 本機 `npx wrangler deploy` | 未設 CI；secrets 用 `wrangler secret put`，不入 repo |
@@ -131,7 +131,12 @@ flowchart LR
 - 市場消息：每月新聞類別、投資者焦點利好 vs 利淡、最多報道的酒廠。
 - 列印 A4（所有分頁依次排版）。
 
-### 4.4 後台（`/admin`）
+### 4.4 進口成本計算器（`/calculator`，成員）
+- 香港、內地、台灣、澳門、日本、新加坡六個分頁，公式同客戶 Excel 一致（PLAN §13.7 修正項除外），測試 `test/calc.test.js` 用 Excel 示範數字逐格對數。
+- 匯率每日自動（GBP→當地，ECB＋ExchangeRate-API 的 TWD／MOP）；稅率及成本計算器預設值喺後台「設定」改。
+- 即計即用、不儲存；下載 CSV（UTF-8 BOM）、列印 A4 橫向。
+
+### 4.5 後台（`/admin`）
 - 酒款評分：掃描表（Tier、總分、五項分數、最近成交、12 個月變化、最近新聞），按 Tier 篩選、按分數排序。
 - 酒款編輯：資料（含「AI 起草」）、價格（圖表＋表格，HKD／USD／原幣）、回報及投資卡、網上評分、單瓶、相片／證書、相關新聞。
 - CSV 匯入價格、範本下載。
@@ -200,7 +205,7 @@ Tier：A ≥ 75、B 60–74、C 45–59、低 < 45。權重可在設定頁改（
 
 ## 8. 保安及私隱
 
-- 公開路徑：`/`、`/whisky`、`/trends`、`/api/news*`、`/api/trends`、`/api/whisky*`、`/api/whisky-media/*`、靜態檔。其餘（`/admin`、`/api/admin/*`）先經 Cloudflare Access，Worker 再驗 JWT 及 Admin 名單，不通過 403。
+- 公開路徑：`/`、`/whisky`、`/trends`、`/api/news*`、`/api/trends`、`/api/whisky*`、`/api/whisky-media/*`、靜態檔。其餘（`/admin`、`/calculator`、`/api/admin/*`）先經 Cloudflare Access，Worker 再驗 JWT，不通過 403。
 - 公開酒款 API 用**欄位白名單**：永不輸出購入成本、私人備註、來源證明、單瓶資料、目標價、最低出售價、投資卡、評分細項、非公開價格／相片。已用測試資料搜查公開回應確認。
 - 公開相片只在 `is_public=1` 時經 Worker 讀 R2 回傳；R2 bucket 本身不公開。
 - 所有 SQL 用 prepared statements；所有外部文字（新聞、AI 輸出、國家名）輸出 HTML 前轉義；外部連結只接受 http(s)。
@@ -214,7 +219,8 @@ Tier：A ≥ 75、B 60–74、C 45–59、低 < 45。權重可在設定頁改（
 | 項目 | PLAN 原本 | 現況 | 原因 |
 |---|---|---|---|
 | 新聞頁 | 只限 Admin／Viewer 登入 | 公開 | 擁有人：用戶不想登入。因此「影響我的酒」不在公開頁顯示（避免洩露追蹤名單） |
-| Viewer 角色 | 有 | 實際上不再需要 | 前台已公開，後台只限 Admin |
+| 角色 | Admin／Viewer | 只有一種成員 | PLAN 2026-11-05 更新（§8.1）；新聞、酒款、趨勢仍公開（擁有人 2026-11-05 再確認） |
+| 計算器程式位置 | `src/calc.js` | `public/js/calc.js` | 瀏覽器要直接 import，靜態檔只可以放 `public/`；Worker 同測試都 import 同一個檔 |
 | 酒款資料 | 只經私人分享連結給客戶 | 另有公開目錄 `/whisky` | 擁有人決定；只顯示 Tier＋總分 |
 | 網上評分 | 無 | 有（手動輸入） | 擁有人要求 |
 | 市場趨勢頁 | 無 | 有 | 擁有人要求；用開放數據，不抄 WhiskyInvestDirect／SWIR（有版權） |

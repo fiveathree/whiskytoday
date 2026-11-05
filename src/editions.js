@@ -6,6 +6,7 @@ import { rescoreEdition, loadConverter } from './rescore.js';
 import { median } from './score.js';
 import { seedDemo, clearDemo } from './demo.js';
 import { aiDraft } from './aidraft.js';
+import { DEFAULTS as CALC_DEFAULTS } from '../public/js/calc.js';
 
 const PAGE = 15;
 const EDITION_TEXT = ['name_en', 'name_zh', 'category', 'cask_type', 'cask_number', 'description_zh', 'description_en',
@@ -278,8 +279,21 @@ async function saveSettings(env, b) {
     if (Object.values(w).reduce((a, c) => a + c, 0) === 100) stmts.push(['score_weights', JSON.stringify(w)]);
     else return json({ error: '五項權重加埋要等於 100' }, 400);
   }
-  if (stmts.length) {
-    await env.DB.batch(stmts.map(([k, v]) => env.DB.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').bind(k, v)));
+  const rescore = stmts.length > 0; // only score settings change the scores
+  // Calculator tax and cost defaults (PLAN §13.3), one JSON row per region; only known numeric keys.
+  for (const [region, v] of Object.entries(b.calc && typeof b.calc === 'object' ? b.calc : {})) {
+    const seed = CALC_DEFAULTS[region];
+    if (!seed || !v || typeof v !== 'object') continue;
+    const out = {};
+    for (const k of Object.keys(seed)) {
+      if (k === 'fx') continue; // the rate comes from the daily FX table
+      if (k === 'cost') out.cost = seed.cost.map((d, i) => (Number.isFinite(Number(v.cost?.[i])) ? Number(v.cost[i]) : d));
+      else out[k] = Number.isFinite(Number(v[k])) ? Number(v[k]) : seed[k];
+    }
+    stmts.push([`calc.${region}`, JSON.stringify(out)]);
+  }
+  if (stmts.length) await env.DB.batch(stmts.map(([k, v]) => env.DB.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').bind(k, v)));
+  if (rescore) {
     const settings = await getSettings(env);
     const { results } = await env.DB.prepare('SELECT id FROM editions').all();
     for (const e of results) await rescoreEdition(env, e.id, settings);

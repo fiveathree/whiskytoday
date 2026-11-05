@@ -8,6 +8,7 @@ export const safeUrl = (u) => (/^https?:\/\//i.test(String(u || '')) ? esc(u) : 
 const STR = {
   'nav.news': ['每日情報', 'Intelligence'],
   'nav.admin': ['後台', 'Admin'],
+  'nav.calc': ['計算器', 'Calculator'],
   'nav.trends': ['市場趨勢', 'Trends'],
   'nav.whisky': ['酒款', 'Collection'],
   'title.whisky': ['精選酒款', 'Collection'], 'search.whisky': ['搜尋酒款或酒廠…', 'Search bottlings or distilleries…'],

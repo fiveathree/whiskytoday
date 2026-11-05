@@ -47,13 +47,16 @@ npx wrangler deploy
 
 ## 步驟 4：用 Cloudflare Access 只保護後台
 
-每日情報（`/`）係公開嘅，唔使登入；只有後台（`/admin`）同後台 API（`/api/admin`）要登入。
+每日情報（`/`）、酒款（`/whisky`）、市場趨勢（`/trends`）係公開嘅，唔使登入；後台（`/admin`）、計算器（`/calculator`）同成員 API（`/api/admin`）要登入。
+
+所有登入到嘅人權限完全一樣（PLAN §8.1），所以 Access policy 嘅 email 名單就係唯一嘅門：**唔好揀 Everyone，亦唔好揀成個 email 網域**。
 
 1. https://dash.cloudflare.com → 左邊 **Zero Trust** → **Access controls** → **Applications** → **Create new application** → 揀 **Self-hosted and private**。
 2. **Application name**：`whiskytoday admin`。
 3. 撳 **Add public hostname**，Domain 填 `whiskytoday.<你嘅帳戶>.workers.dev`，**Path** 填 `admin`。
 4. 再撳一次 **Add public hostname**，同一個 Domain，**Path** 填 `api/admin`。
-5. **Policies** 加一個 Allow policy，揀 **Cloudflare account members**（只有你個 Cloudflare 帳戶登入到）。想俾其他 email 做 Admin，就另外加 **Emails** 規則。
+   再撳一次，同一個 Domain，**Path** 填 `calculator`。
+5. **Policies** 加一個 Allow policy，揀 **Cloudflare account members**（只有你個 Cloudflare 帳戶登入到）。想加其他成員（例如 Sales），就另外加 **Emails** 規則，逐個 email 填。
 6. 撳 **Save**／**Create**。
 
 ⚠️ 唔好喺 Worker 嘅 **Access** 分頁撳「Protect this Worker behind Access」，嗰個會連公開嘅每日情報都鎖埋。
@@ -76,11 +79,6 @@ npx wrangler secret put ACCESS_TEAM_DOMAIN
 npx wrangler secret put ACCESS_AUD
 ```
 貼：步驟 4a 嘅 AUD
-
-```bash
-npx wrangler secret put ADMIN_EMAILS
-```
-貼：Admin 嘅 email（多過一個用逗號分隔）。其他通過 Access 嘅人自動當 Viewer。
 
 ```bash
 npx wrangler secret put ANTHROPIC_API_KEY
@@ -123,3 +121,4 @@ npx wrangler secret put DIGEST_FROM
 - [ ] 簡報準時寄出
 - [ ] 未登入打開 `/` 睇到新聞；打開 `/admin` 被擋
 - [ ] 未登入呼叫 `/api/admin/*` 得 403
+- [ ] 未登入打開 `/calculator` 被擋
