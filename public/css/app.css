@@ -188,7 +188,7 @@ form.inline .field { width: auto; flex: 1 1 150px; }
 .trends { display: grid; grid-template-rows: auto 1fr auto; min-height: 0; padding: 16px 28px 10px; gap: 12px; }
 .trends-head { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
 .trends-head h1 { font-size: 26px; }
-.trends-head .tabs { margin-left: auto; border-bottom: 0; }
+.trends-head .tabs { margin-left: 12px; border-bottom: 0; }
 .tpanel { min-height: 0; display: grid; grid-template-rows: auto 1fr; gap: 12px; }
 .tpanel[data-panel="markets"], .tpanel[data-panel="news"] { grid-template-rows: 1fr; }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; min-height: 0; }
