@@ -401,8 +401,8 @@ CREATE TABLE job_logs (
 
 ### 8.1 角色
 
-- 角色判斷：JWT 內的 email 在 Worker 環境變數 `ADMIN_EMAILS`（逗號分隔）內 → Admin；在 `SALES_EMAILS` 內 → Sales；其餘通過 Access 的 → Viewer。新增用戶只需在 Access policy 加 email，Sales 另加入 `SALES_EMAILS`（寫出逐步教學）。
-- **Sales（內部銷售團隊）**：只可使用進口成本計算器（§13，`/calculator`），其他頁面及 API 一律 403。Admin 及 Viewer 亦可使用計算器。
+- 角色判斷：JWT 內的 email 在 Worker 環境變數 `ADMIN_EMAILS`（逗號分隔）內 → Admin；其餘通過 Access 的 → Viewer。新增用戶只需在 Access policy 加 email（寫出逐步教學）。
+- **內部 Sales 團隊 = Viewer**：可看新聞、投資者焦點、酒款評分及使用進口成本計算器（§13，`/calculator`），但不可進入 Admin 後台。不另設 Sales 角色。
 - **Viewer 可以**：看新聞頁、投資者焦點、酒款評分表、酒款詳細頁（公開欄位、評分、`is_public=1` 價格）。
 - **Viewer 不可以**：任何寫入（CRUD、CSV 匯入、來源管理、設定）、建立或撤銷分享連結、看購入成本、私人備註、來源證明、非公開價格、目標價／最低出售價、工作紀錄及成本。
 - 權限在 **Worker API 層** 檢查並在查詢時就不取出敏感欄位，不可只靠前端隱藏。
@@ -503,7 +503,7 @@ CREATE TABLE job_logs (
 
 客戶現時用一份 Excel（英國威士忌進口六地動態價格計算表）計算由英國進口威士忌到各地的含稅成本。要把它做成網頁：**有公式的欄位自動計，無公式的欄位由用戶填**，六個地區（Excel 每個 sheet）都要做。
 
-- **用戶**：內部 Sales 團隊（及 Admin、Viewer），不給客戶或 Distributor。
+- **用戶**：Admin 及 Viewer（即內部 Sales 團隊），不給客戶或 Distributor。
 - **即計即用，不儲存**：不寫入 D1、不記錄用戶輸入。所有計算在瀏覽器以純 JS 完成，伺服器只提供預設參數。
 - 頁面重新整理後回到預設值。可以「下載 CSV」及「列印」（`window.print()`，A4 橫向），兩者都只在瀏覽器內完成。
 
@@ -519,7 +519,7 @@ CREATE TABLE job_logs (
 ### 13.3 參數及預設值
 
 - **匯率**：預設由每日匯率表 `fx_rates` 取 GBP → 該地貨幣最新匯率，顯示「匯率日期」；用戶可手動改，只影響本次計算。（`fx_rates` 需加入 GBP、CNY、TWD、MOP、JPY、SGD。）
-- **稅率**：預設值存在 `settings`（key 例如 `calc.hk.base_rate`），只有 Admin 可在設定頁修改，Sales 在計算器頁改只屬本次計算。
+- **稅率**：預設值存在 `settings`（key 例如 `calc.hk.base_rate`），只有 Admin 可在設定頁修改，Viewer 在計算器頁改只屬本次計算。
 - **地區成本計算器預設值**（酒液、出口文件及入樽、標籤、物流，單位 GBP）同樣存在 `settings`，Admin 可改。
 
 Excel 現有預設值（作為 seed）：
@@ -580,7 +580,7 @@ Excel 現有預設值（作為 seed）：
 
 ### 13.9 驗收
 
-- Sales 帳號只可打開 `/calculator`，其他頁面 403。
+- Viewer（Sales）可打開 `/calculator`、新聞頁及評分表，但打開 `/admin` 及寫入 API 得 403。
 - 六個地區用 Excel 示範數字計出與 Excel 相同的結果（13.7 修正項除外）。
 - 改匯率、稅率、成本計算器任何一格，全頁即時更新。
 - 重新整理後回到預設值；伺服器沒有任何寫入。
