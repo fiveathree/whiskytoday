@@ -111,20 +111,20 @@ function renderTable() {
       <th>酒名</th><th class="num">瓶數</th><th class="num">單價（GBP）</th><th class="num">酒精度 %</th><th class="num">容量 L</th>
       ${cols.map(([, l]) => `<th class="num">${esc(l)}</th>`).join('')}<th></th></tr></thead>
     <tbody>${s.rows.map((row, i) => `<tr>
-        <td>${input(i, 'name', row.name, 'name', `酒款 ${i + 1}`)}</td>
-        <td>${input(i, 'qty', row.qty)}</td>
-        <td class="price-cell"><div class="price-wrap">${input(i, 'price', row.price)}
+        <td class="c-name">${input(i, 'name', row.name, 'name', `酒款 ${i + 1}`)}</td>
+        <td class="c-in" data-label="瓶數">${input(i, 'qty', row.qty)}</td>
+        <td class="price-cell c-in" data-label="單價（GBP）"><div class="price-wrap">${input(i, 'price', row.price)}
           <button type="button" class="expand" data-open="${i}" aria-expanded="${row.open}" title="每行獨立成本">${row.open ? '▴' : '▾'}</button></div>
           <span class="mode" data-mode="${i}"></span></td>
-        <td>${input(i, 'abv', row.abv)}</td>
-        <td>${input(i, 'volume', row.volume)}</td>
-        ${cols.map(([k]) => `<td class="num out" data-o="${i}:${k}"></td>`).join('')}
-        <td><button type="button" class="btn small del" data-del="${i}" ${s.rows.length < 2 ? 'disabled' : ''} aria-label="刪除">×</button></td>
+        <td class="c-in" data-label="酒精度 %">${input(i, 'abv', row.abv)}</td>
+        <td class="c-in" data-label="容量 L">${input(i, 'volume', row.volume)}</td>
+        ${cols.map(([k, l]) => `<td class="num out c-${k.replace('.', '-')}" data-label="${esc(l)}" data-o="${i}:${k}"></td>`).join('')}
+        <td class="c-del"><button type="button" class="btn small del" data-del="${i}" ${s.rows.length < 2 ? 'disabled' : ''} aria-label="刪除">×</button></td>
       </tr>${row.open ? `<tr class="cost-row"><td colspan="${span}"><div class="cost-grid"><span class="note">此酒自己嘅成本（GBP）：</span>
         ${COST_LABELS.map((l, c) => `<label>${l}<input class="field num" inputmode="decimal" data-r="${i}" data-rc="${c}" value="${esc(row.cost[c])}"></label>`).join('')}</div></td></tr>` : ''}`).join('')}
     </tbody>
-    <tfoot><tr><td>總計</td><td class="num" id="t-qty"></td><td></td><td></td><td></td>
-      ${cols.map(([k]) => `<td class="num" id="t-${k.replace('.', '-')}"></td>`).join('')}<td></td></tr></tfoot>`;
+    <tfoot><tr><td class="c-name">總計</td><td class="num" data-label="瓶數" id="t-qty"></td><td></td><td></td><td></td>
+      ${cols.map(([k, l]) => `<td class="num c-${k.replace('.', '-')}" data-label="${esc(l)}" id="t-${k.replace('.', '-')}"></td>`).join('')}<td></td></tr></tfoot>`;
   update();
 }
 

@@ -477,3 +477,36 @@ h3.with-info, p.with-info { display: flex; }
   .calc-main { min-width: 0; }
   .calc-main .table-wrap { max-height: 70dvh; }
 }
+
+/* Phones: each wine row becomes a vertical card, no sideways scrolling */
+@media (max-width: 860px) {
+  .calc-main .table-wrap { max-height: none; overflow: visible; border: 0; }
+  .calc-table, .calc-table tbody, .calc-table tfoot { display: block; }
+  .calc-table thead { display: none; }
+  .calc-table tr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; position: relative;
+    border: 1px solid var(--gold-faint); border-radius: var(--radius); padding: 12px; margin-bottom: 10px; background: var(--bg-raise); }
+  .calc-table td { display: block; padding: 0; border: 0; white-space: normal; background: none; position: static; }
+  .calc-table td:empty { display: none; }
+  .calc-table td[data-label]::before { content: attr(data-label); display: block; font-size: 11px; color: var(--faint); margin-bottom: 3px; }
+  .calc-table .c-name { grid-column: 1 / -1; padding-right: 40px; }
+  .calc-table .c-name .field { width: 100%; min-width: 0; font-size: 15px; }
+  .calc-table .c-in .field, .calc-table td:nth-child(n) .field { width: 100%; }
+  .price-wrap .field { width: auto; flex: 1; min-width: 0; }
+  .mode { text-align: left; padding-right: 0; margin-top: 2px; }
+  .calc-table td.out, .calc-table tfoot td[data-label] { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: baseline;
+    border-top: 1px solid rgba(201, 169, 110, .1); padding-top: 6px; }
+  .calc-table td.out::before, .calc-table tfoot td[data-label]::before { margin: 0; font-size: 12px; }
+  .calc-table td.out:first-of-type { margin-top: 4px; }
+  .calc-table .c-totalPer, .calc-table .c-total { color: var(--gold); font-weight: 600; }
+  .calc-table .c-del { position: absolute; top: 12px; right: 12px; }
+  .calc-table .del { padding: 4px 10px; }
+  .calc-table tr.cost-row { display: block; margin-top: -10px; border-top: 0; border-radius: 0 0 var(--radius) var(--radius); background: var(--claim-bg); }
+  .cost-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+  .cost-grid .note { grid-column: 1 / -1; }
+  .cost-grid label { flex-direction: column; align-items: stretch; gap: 3px; }
+  .cost-grid .field { width: 100%; }
+  .calc-table tfoot tr { border-color: var(--gold-dim); }
+  .calc-table tfoot .c-name { font-family: var(--serif); font-size: 18px; color: var(--gold); }
+  .calc-table tfoot td { position: static; font-weight: 600; }
+  .calc-table tfoot td:empty, .calc-table td.out:empty { display: none; }
+}
