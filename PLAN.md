@@ -27,8 +27,8 @@
 
 **Whisky Today**：私人高端威士忌情報及酒款分享平台。
 
-- **主要用戶（Admin）**：一位從事高端威士忌（每支 HK$10,000 以上）投資及買賣、亦定期開班分享的專業人士，客戶為香港及台灣的高端收藏者及 Distributor。
-- **指定用戶（Viewer）**：Admin 邀請的少數人，可看每日情報、投資者焦點、酒款評分，但不可修改資料，亦看不到成本及私人資料（§8.1）。
+- **主要用戶**：一位從事高端威士忌（每支 HK$10,000 以上）投資及買賣、亦定期開班分享的專業人士，客戶為香港及台灣的高端收藏者及 Distributor。
+- **內部成員**（他本人及 Sales 團隊）：所有登入的人權限完全相同，可看及修改全部內容，包括設定。**不分 Admin／Viewer**（§8.1）。
 - **Distributor／客戶**：只透過私人分享連結看單支酒的分享頁，毋須登入。
 - **幣種**：主要用 **港幣（HKD）及美金（USD）**，可隨時切換；原幣種照樣保留。
 - **核心需求**
@@ -47,9 +47,9 @@
 | 資料庫 | Cloudflare D1（SQLite） | 全文搜尋用 FTS5 |
 | 檔案 | Cloudflare R2 | 酒瓶相片、來源證明文件 |
 | 排程 | Cron Triggers | 每日兩次收集新聞 |
-| 登入 | **Cloudflare Access**（Zero Trust）保護所有非公開路徑；Access policy 的 email 名單 = Admin + Viewer | 不自寫登入系統；Worker 內驗證 `Cf-Access-Jwt-Assertion`，再按 email 判斷角色（§8.1） |
+| 登入 | **Cloudflare Access**（Zero Trust）保護所有非公開路徑；Access policy 的 email 名單 = 全部內部成員 | 不自寫登入系統；Worker 內驗證 `Cf-Access-Jwt-Assertion`；不設角色（§8.1） |
 | AI | Claude API（Worker secret `ANTHROPIC_API_KEY`） | 只在 Worker 後端呼叫 |
-| 每日簡報 email | Cloudflare Email Routing 的 `send_email` binding，寄到已驗證的管理員地址 | 不引入第三方 email 服務 |
+| 每日簡報 email | Cloudflare Email Routing 的 `send_email` binding，寄到設定頁所列、已在 Email Routing 驗證的成員地址 | 不引入第三方 email 服務 |
 | 匯率 | 每日取一次公開匯率（來源待驗證），存 D1 | 顯示幣種 HKD、USD；換算來源幣種 GBP、EUR、JPY、TWD 等 |
 | PDF | 瀏覽器列印（`window.print()` + print CSS，A4） | 不自建 PDF 引擎 |
 | 圖表 | 原生 SVG 自繪（價格歷史線圖） | 不引入圖表庫，除非 SVG 不可行 |
@@ -126,7 +126,7 @@ CREATE TABLE entities (
   region TEXT,
   status TEXT,                     -- active, closed, mothballed, reopened
   description_zh TEXT, description_en TEXT,
-  is_tracked INTEGER NOT NULL DEFAULT 0   -- 管理員追蹤中
+  is_tracked INTEGER NOT NULL DEFAULT 0   -- 追蹤中
 );
 CREATE TABLE article_entities (
   article_id TEXT NOT NULL REFERENCES articles(id),
@@ -151,7 +151,7 @@ CREATE TABLE editions (
   description_zh TEXT, description_en TEXT,
   tasting_zh TEXT, tasting_en TEXT,
   owner_comment_zh TEXT, owner_comment_en TEXT,   -- 專業評語，可公開
-  target_price_minor INTEGER, target_currency TEXT,     -- 投資卡：目標價（管理員輸入）
+  target_price_minor INTEGER, target_currency TEXT,     -- 投資卡：目標價（成員輸入）
   floor_price_minor INTEGER, floor_currency TEXT,       -- 投資卡：最低可接受出售價
   holding_months INTEGER,                               -- 投資卡：預計持有期
   is_tracked INTEGER NOT NULL DEFAULT 1,
@@ -183,7 +183,7 @@ CREATE TABLE media (
   caption TEXT
 );
 
--- 價格紀錄（管理員輸入或 CSV 匯入）
+-- 價格紀錄（成員輸入或 CSV 匯入）
 CREATE TABLE prices (
   id TEXT PRIMARY KEY,
   edition_id TEXT NOT NULL REFERENCES editions(id),
@@ -224,7 +224,7 @@ CREATE TABLE shares (
   edition_id TEXT NOT NULL REFERENCES editions(id),
   bottle_id TEXT REFERENCES bottles(id),
   token_hash TEXT NOT NULL UNIQUE, -- SHA-256(token)，原 token 只在建立時顯示一次
-  label TEXT,                      -- 管理員自己的備註（不可填客戶姓名，UI 要提示）
+  label TEXT,                      -- 內部備註（不可填客戶姓名，UI 要提示）
   show_prices INTEGER NOT NULL DEFAULT 1,
   show_score INTEGER NOT NULL DEFAULT 1,
   show_investor_card INTEGER NOT NULL DEFAULT 0,
@@ -263,7 +263,7 @@ CREATE TABLE job_logs (
 2. **去重**：`canonical_url` 相同即跳過；正規化標題（小寫、去標點、去停用詞）hash 相同、或 72 小時內標題相似度高者，歸入同一 `cluster_id`，只處理一次 AI，頁面列出所有來源。
 3. **AI 處理**：每篇（每 cluster）呼叫 Claude 一次，要求嚴格 JSON（見 §4.5）。每輪上限 60 篇，超出的留待下一輪；按來源可靠度及發佈時間排序。
 4. **投資者焦點**：由規則決定（§4.3），AI 只負責判斷新聞屬於哪個類別及抽取實體。
-5. **配對**：用 `entities.name_en / name_zh / aliases` 對 AI 抽取的實體做配對，寫入 `article_entities`。配對不到的實體名稱記錄下來，在後台提示管理員是否新增。
+5. **配對**：用 `entities.name_en / name_zh / aliases` 對 AI 抽取的實體做配對，寫入 `article_entities`。配對不到的實體名稱記錄下來，在後台提示是否新增。
 6. **觸發重算**：有投資者焦點新聞連到某酒廠 / 品牌 → 重算相關 `editions` 的「酒廠基本面」及總分（§6）。
 7. **簡報**：組成 email（HTML + 純文字），三段：①影響你追蹤酒款的新聞 ②投資者焦點 ③其他重要消息（importance ≥ 3），每篇一行標題 + 一行摘要 + 連結。
 
@@ -305,29 +305,29 @@ CREATE TABLE job_logs (
 | 拍賣 | Whisky Auctioneer、Scotch Whisky Auctions、Sotheby's（Wine & Spirits）、Bonhams、Christie's 的新聞／拍賣結果頁（有 RSS 才用） |
 | 日本 | Nonjatta 及其他日文威士忌新聞源 |
 | 美國 | Breaking Bourbon、Bourbon & Banter、Whisky Advocate（美國部分） |
-| 台灣／香港 | 本地烈酒新聞及拍賣行（待管理員提供） |
+| 台灣／香港 | 本地烈酒新聞及拍賣行（待客戶提供） |
 | 其他 | 愛爾蘭、印度威士忌新聞源 |
 
-管理員可在後台新增／停用來源。
+成員可在後台新增／停用來源。
 
-### 4.7 前台：新聞頁（`/`，Admin 及 Viewer，受 Access 保護）
+### 4.7 前台：新聞頁（`/`，內部成員，受 Access 保護）
 
 - 一屏佈局：左側篩選（全部／投資者焦點／影響我的酒；地區；類別；日期），右側新聞卡片列表（分頁，每頁 10–12 張）。
 - 頂部固定一行：「影響你手上的酒（N）」。
 - 卡片：中文標題、一行摘要、類別及地區標籤、投資者焦點徽章、方向（利好／利淡／中性）、來源數目、時間。撳入顯示詳細：事實、來源說法、AI 解讀（不同底色區分）、投資者分析卡、相關酒款連結、所有原文連結。
 - 搜尋框：FTS5。
 
-> 新聞頁只限 Admin 及 Viewer，不做公開新聞網站。
+> 新聞頁只限內部成員，不做公開新聞網站。
 
 ---
 
-## 5. 模組二：酒款及價格（後台 `/admin`）
+## 5. 模組二：酒款及價格
 
-- **酒款版本 CRUD**：欄位見 `editions`。可貼一段英文描述，按「AI 起草」由 Claude 填中英文介紹（管理員確認後才儲存；AI 不可填 edition_size、年份等數字，只可從管理員貼上的文字抽取）。
+- **酒款版本 CRUD**：欄位見 `editions`。可貼一段英文描述，按「AI 起草」由 Claude 填中英文介紹（成員確認後才儲存；AI 不可填 edition_size、年份等數字，只可從成員貼上的文字抽取）。
 - **單瓶 CRUD**：每個版本下可加多支單瓶，上載相片／證書到 R2（`is_public` 每張獨立設定）。介面清楚提示「證書或相片不代表已驗證真偽」。
 - **價格輸入**：表單 + **CSV 匯入**（欄位與 `prices` 一致；匯入前預覽，錯誤行標紅不匯入）。必須選 `price_type`；`auction_unsold` 用來計流拍率。
 - **價格歷史圖**：SVG 線圖，按 price_type 分顏色，可切換顯示幣種（HKD／USD／原幣），換算用 `observed_at` 當日或之前最近的匯率。
-- **酒款列表（類似股票掃描表，Admin 及 Viewer 可看；`/scores`）**：表頭摘要（追蹤酒款數、已評分、資料不足、待核實），表格欄位：名稱、類別、Tier、總分、五項分數、最近成交（HKD）、12 個月變化、最近新聞日期。可排序、篩選，分頁保持一屏。
+- **酒款列表（類似股票掃描表；`/scores`）**：表頭摘要（追蹤酒款數、已評分、資料不足、待核實），表格欄位：名稱、類別、Tier、總分、五項分數、最近成交（HKD）、12 個月變化、最近新聞日期。可排序、篩選，分頁保持一屏。
 - **設定頁**：品牌名、logo（R2）、預設幣種（HKD 或 USD）、評分常數、出場成本預設百分比、每日簡報收件地址（只能是已在 Email Routing 驗證的地址）。
 
 ---
@@ -363,9 +363,9 @@ CREATE TABLE job_logs (
 | 欄位 | 來源 |
 |---|---|
 | 參考買入價 | 近 12 個月成交中位數（HKD），附樣本數 |
-| 目標價 | 管理員輸入（`target_price_minor`），AI 不可自行產生 |
-| 最低可接受出售價 | 管理員輸入（取代股票的止蝕位，因為威士忌不能即時賣出） |
-| 預計持有期 | 管理員輸入 |
+| 目標價 | 成員輸入（`target_price_minor`），AI 不可自行產生 |
+| 最低可接受出售價 | 成員輸入（取代股票的止蝕位，因為威士忌不能即時賣出） |
+| 預計持有期 | 成員輸入 |
 | 出場成本 | 設定百分比 × 目標價 |
 | 回報風險比（RRR） | `(目標價 − 出場成本 − 參考買入價) ÷ (參考買入價 − 最低可接受出售價)`；分母 ≤ 0 或任何欄位缺失 → 顯示「未能計算」 |
 
@@ -383,8 +383,8 @@ CREATE TABLE job_logs (
 
 ## 7. 模組四：客戶分享頁（`/s/:token`，公開）
 
-- 管理員在酒款頁按「建立分享連結」→ 選擇顯示內容（價格、評分、投資卡）、幣種、語言、期限 → 產生 token（`crypto.getRandomValues` 32 bytes → base64url），**只顯示一次**，D1 只存 SHA-256。
-- 頁面風格：私人奢侈品型錄。深色或米白高級感、大幅酒瓶相片、襯線標題、大量留白；頂部為管理員的品牌名及 logo。一屏顯示主要資訊，次要資訊用分頁標籤（概覽／價格／相關消息／評語）。
+- 成員在酒款頁按「建立分享連結」→ 選擇顯示內容（價格、評分、投資卡）、幣種、語言、期限 → 產生 token（`crypto.getRandomValues` 32 bytes → base64url），**只顯示一次**，D1 只存 SHA-256。
+- 頁面風格：私人奢侈品型錄。深色或米白高級感、大幅酒瓶相片、襯線標題、大量留白；頂部為客戶的品牌名及 logo。一屏顯示主要資訊，次要資訊用分頁標籤（概覽／價格／相關消息／評語）。
 - 內容：版本資料、單瓶瓶況（如有指定單瓶）、公開相片、專業評語、相關新聞（只顯示已發佈的中英摘要及原文連結）、`is_public=1` 的價格紀錄及價格圖、Tier 及簡化評分（不顯示計法細節）、（選擇顯示時）投資卡。
 - **永不顯示**：購入成本、私人備註、來源證明（除非該 media `is_public=1`）、`label`。
 - 每頁底部固定：「本頁資料僅供市場參考，並非投資建議，不保證任何成交價或回報。」及資料更新日期。
@@ -397,26 +397,16 @@ CREATE TABLE job_logs (
 
 ## 8. 保安要求
 
-- `/`（新聞頁）、`/scores`、`/admin*`、`/api/*`（分享 API 除外）全部由 Cloudflare Access 保護，只容許名單內 email；Worker 內再驗證 Access JWT（`Cf-Access-Jwt-Assertion`，用 Access 的公開金鑰），不通過即 403。
+- 除分享頁（`/s/:token`、`/api/share/:token`）及靜態資源外，所有頁面及 API 由 Cloudflare Access 保護，只容許名單內 email；Worker 內再驗證 Access JWT（`Cf-Access-Jwt-Assertion`，用 Access 的公開金鑰），不通過即 403。
 
-### 8.1 角色
+### 8.1 權限：只有一種成員
 
-- 角色判斷：JWT 內的 email 在 Worker 環境變數 `ADMIN_EMAILS`（逗號分隔）內 → Admin；其餘通過 Access 的 → Viewer。新增用戶只需在 Access policy 加 email（寫出逐步教學）。
-- **內部 Sales 團隊 = Viewer**：可看新聞、投資者焦點、酒款評分及使用進口成本計算器（§13，`/calculator`），但不可進入 Admin 後台。不另設 Sales 角色。
-- **Viewer 可以**：看新聞頁、投資者焦點、酒款評分表、酒款詳細頁（公開欄位、評分、`is_public=1` 價格）。
-- **Viewer 不可以**：任何寫入（CRUD、CSV 匯入、來源管理、設定）、建立或撤銷分享連結、看購入成本、私人備註、來源證明、非公開價格、目標價／最低出售價、工作紀錄及成本。
-- 權限在 **Worker API 層** 檢查並在查詢時就不取出敏感欄位，不可只靠前端隱藏。
-- 每日 email 簡報只寄 Admin。
-- 只有 `/s/:token`、`/api/share/:token`、靜態資源公開。
-- 所有 SQL 用 D1 prepared statements（`bind`），不拼接字串。
-- 所有輸出到 HTML 的文字一律轉義（新聞內容來自外部，視為不可信）；AI 回應同樣視為不可信資料。
-- 收集新聞只 fetch `sources.feed_url` 內的網址，禁止根據新聞內容去 fetch 其他 URL（防 SSRF）。
-- 分享 API 加簡單 rate limit（同一 IP 每分鐘 30 次，用 Workers Rate Limiting binding 或 D1 計數，揀最簡單可行者）。
-- R2 檔案不公開 bucket；公開相片經 Worker 檢查 `is_public` 後才回傳。
-- Secrets：`ANTHROPIC_API_KEY`、Access team domain／AUD 用 `wrangler secret`，不入 repo。
-- 每週自動匯出 D1 備份到 R2（用 Cron，保留最近 8 份）。
-
----
+- **不設 Admin／Viewer 角色**。凡通過 Cloudflare Access（email 在 Access policy 名單內）的都是內部成員，權限完全相同：可看及修改全部內容，包括新聞來源、酒款、價格、成本、私人備註、分享連結、設定及計算器預設值。
+- 新增或移除成員只需在 Access policy 加減 email（寫出逐步教學）。這是唯一的門，所以 Access 必須設定正確：不可用「Everyone」或整個 email 網域。
+- 不需要 `/admin` 獨立入口；設定頁（`/settings`）與其他頁面同一導覽列。
+- 所有寫入記錄修改者：相關資料表加 `updated_by`（取自 Access JWT 的 email）及 `updated_at`，後台頁面顯示「最後修改：某某，時間」。成本很低，日後追查方便。
+- 分享頁（§7）規則不變：公開連結永不輸出購入成本、私人備註、來源證明或內部備註。
+- 每日 email 簡報寄給設定頁所列地址（每個地址需先在 Email Routing 驗證）。
 
 ## 9. 美術設計：高級、優越感
 
@@ -428,7 +418,7 @@ CREATE TABLE job_logs (
 - **細節**：金額一律寫幣種（`HK$`、`US$`）；Tier 用金色徽章；動畫只用輕柔淡入（≤200ms），尊重 `prefers-reduced-motion`。
 - **情報及評分頁**：沿用同一套風格，資料密度較高，似私人投資終端（參考股票掃描表的結構，但用上述配色及字體）。
 - **分享頁**：最高規格的型錄感（§7），手機優先，因為客戶多數用手機開。
-- **品牌元素**：favicon、og:image、logo 位全部按此風格製作（第一版用文字 logo「WHISKY TODAY」襯線字 + 金線，之後可換 Admin 的 logo）。og:image 不可洩露酒款或價格。
+- **品牌元素**：favicon、og:image、logo 位全部按此風格製作（第一版用文字 logo「WHISKY TODAY」襯線字 + 金線，之後可換客戶的 logo）。og:image 不可洩露酒款或價格。
 - **一屏原則**：用分頁、標籤、篩選代替長捲動。
 
 ---
@@ -452,7 +442,7 @@ CREATE TABLE job_logs (
 4. 新聞頁（§4.7）、搜尋、後台來源管理、工作紀錄頁。
 5. 每日 email 簡報。
 
-**驗收**：連續 3 日自動收集；每篇已發佈新聞都有中英摘要及原文連結；同一事件不重複出現；投資者焦點篩選正確；簡報準時寄出；未登入訪問 `/` 及 `/admin` 被擋；Viewer 可看新聞但打開 `/admin` 及寫入 API 得 403。
+**驗收**：連續 3 日自動收集；每篇已發佈新聞都有中英摘要及原文連結；同一事件不重複出現；投資者焦點篩選正確；簡報準時寄出；未登入訪問任何非公開頁面被擋。
 
 ### 第二階段：酒款、價格及評分
 
@@ -476,16 +466,16 @@ CREATE TABLE job_logs (
 
 ## 12. 未決問題（不阻礙開發）
 
-**做法：未有答案的項目一律按本文件預設先做出來，讓 Admin 試用後再調整。** 相關常數放在 `settings`，方便之後修改。
+**做法：未有答案的項目一律按本文件預設先做出來，讓客戶試用後再調整。** 相關常數放在 `settings`，方便之後修改。
 
-已確定：主要幣種為港幣及美金；新聞、投資者焦點、評分給 Admin 及指定用戶看；美術要高級優越感。
+已確定：主要幣種為港幣及美金；所有內部成員（含 Sales）權限相同，可看及修改全部內容；美術要高級優越感。
 
 仍待確認（試用後再問）：
 
 1. 大約追蹤及推介多少支酒？（預設：設計可容納 500 支）
 2. 現時價格記錄方式。（預設：用 §3 `prices` 欄位做 CSV 範本，可下載）
 3. 管理實際持有的酒，還是只管理推介酒款？（預設：兩者都支援，單瓶為可選）
-4. 價格是否包括購入成本及預計售價？（預設：有欄位，只限 Admin 看）
+4. 價格是否包括購入成本及預計售價？（預設：有欄位，內部成員可看，分享頁永不顯示）
 5. 品牌名及 logo。（預設：Whisky Today 文字 logo）
 6. 一條私人連結是否足夠，還是需要正式 PDF。（預設：連結 + 瀏覽器列印）
 7. 評分權重（30／20／25／15／10）是否合理。（預設：照用）
@@ -493,7 +483,7 @@ CREATE TABLE job_logs (
 
 ### 12.1 示範資料
 
-為了「先做出來睇下點」，第二階段完成時加入一個 **示範模式**：seed 約 10 個虛構但合理的示範酒款及價格紀錄（名稱加「示範」字樣，`is_demo=1`），讓 Admin 立即看到評分表、酒款頁及分享頁的效果；設定頁有「清除示範資料」按鈕。示範資料不可冒充真實拍賣成交。
+為了「先做出來睇下點」，第二階段完成時加入一個 **示範模式**：seed 約 10 個虛構但合理的示範酒款及價格紀錄（名稱加「示範」字樣，`is_demo=1`），讓成員立即看到評分表、酒款頁及分享頁的效果；設定頁有「清除示範資料」按鈕。示範資料不可冒充真實拍賣成交。
 
 ---
 
@@ -503,7 +493,7 @@ CREATE TABLE job_logs (
 
 客戶現時用一份 Excel（英國威士忌進口六地動態價格計算表）計算由英國進口威士忌到各地的含稅成本。要把它做成網頁：**有公式的欄位自動計，無公式的欄位由用戶填**，六個地區（Excel 每個 sheet）都要做。
 
-- **用戶**：Admin 及 Viewer（即內部 Sales 團隊），不給客戶或 Distributor。
+- **用戶**：內部成員（含 Sales 團隊），不給客戶或 Distributor。
 - **即計即用，不儲存**：不寫入 D1、不記錄用戶輸入。所有計算在瀏覽器以純 JS 完成，伺服器只提供預設參數。
 - 頁面重新整理後回到預設值。可以「下載 CSV」及「列印」（`window.print()`，A4 橫向），兩者都只在瀏覽器內完成。
 
@@ -519,8 +509,8 @@ CREATE TABLE job_logs (
 ### 13.3 參數及預設值
 
 - **匯率**：預設由每日匯率表 `fx_rates` 取 GBP → 該地貨幣最新匯率，顯示「匯率日期」；用戶可手動改，只影響本次計算。（`fx_rates` 需加入 GBP、CNY、TWD、MOP、JPY、SGD。）
-- **稅率**：預設值存在 `settings`（key 例如 `calc.hk.base_rate`），只有 Admin 可在設定頁修改，Viewer 在計算器頁改只屬本次計算。
-- **地區成本計算器預設值**（酒液、出口文件及入樽、標籤、物流，單位 GBP）同樣存在 `settings`，Admin 可改。
+- **稅率**：預設值存在 `settings`（key 例如 `calc.hk.base_rate`），任何成員可在設定頁修改（影響所有人的預設值）；在計算器頁直接改只屬本次計算。
+- **地區成本計算器預設值**（酒液、出口文件及入樽、標籤、物流，單位 GBP）同樣存在 `settings`，成員可在設定頁改。
 
 Excel 現有預設值（作為 seed）：
 
@@ -580,7 +570,7 @@ Excel 現有預設值（作為 seed）：
 
 ### 13.9 驗收
 
-- Viewer（Sales）可打開 `/calculator`、新聞頁及評分表，但打開 `/admin` 及寫入 API 得 403。
+- 登入成員可打開 `/calculator`；未登入被擋。
 - 六個地區用 Excel 示範數字計出與 Excel 相同的結果（13.7 修正項除外）。
 - 改匯率、稅率、成本計算器任何一格，全頁即時更新。
 - 重新整理後回到預設值；伺服器沒有任何寫入。
