@@ -22,8 +22,58 @@ let entities = [];
 let listState = { q: '', tier: '', sort: 'score', page: 1 };
 
 // ---------- Scan table ----------
+// Plain-language explanation of every score, built from the current settings (weights, exit cost, tiers).
+let settingsCache = null;
+function scoringHelp(s) {
+  const parse = (v, d) => { try { return { ...d, ...JSON.parse(v || '{}') }; } catch { return d; } };
+  const w = parse(s?.score_weights, { trend: 30, activity: 20, scarcity: 25, exit: 15, fundamentals: 10 });
+  const tc = parse(s?.tier_cutoffs, { A: 75, B: 60, C: 45 });
+  const exitPct = Number(s?.exit_cost_pct ?? 15);
+  const scaled = (k, base) => (w[k] === base ? '' : `（設定權重 ${w[k]}，按比例由 ${base} 分換算）`);
+  return `
+  <details class="score-help">
+    <summary>評分點樣計？（總分 100，只作研究排序，並非買入建議）</summary>
+    <div class="help-body">
+      <h4>先決條件</h4>
+      <ul>
+        <li>只用同一酒款版本嘅<b>成交價</b>計：拍賣成交（連買家佣金）及私人成交。酒商叫價、建議零售價只作參考，唔計。</li>
+        <li>所有金額先換算做港幣，用成交當日或之前最近嘅匯率。</li>
+        <li><b>資料不足</b>：過去 24 個月成交少過 3 次 → 唔計分、唔排 Tier。</li>
+        <li><b>待核實</b>：冇裝瓶年份而又有同名版本，或者價格紀錄嘅容量同版本唔一樣 → 唔計分，等你核實。</li>
+      </ul>
+      <h4>五項分數</h4>
+      <table class="help-table">
+        <thead><tr><th>項目</th><th class="num">滿分</th><th>點計</th></tr></thead>
+        <tbody>
+          <tr><td>價格趨勢</td><td class="num">${w.trend}</td><td>比較近 12 個月成交中位數同之前 12 個月（t12），以及同 25–36 個月前（t36，按年化）；兩個平均（只有一個就用嗰個，兩個都冇當 0%）。每年 −10% 或以下 = 0 分，每年 +30% 或以上 = 滿分，中間按比例。${scaled('trend', 30)}</td></tr>
+          <tr><td>成交活躍度</td><td class="num">${w.activity}</td><td>近 12 個月成交次數：10 次或以上得 15 分，按比例遞減；加流拍率分：(1 − 流拍率) × 5，冇流拍紀錄當 3 分。${scaled('activity', 20)}</td></tr>
+          <tr><td>稀缺度</td><td class="num">${w.scarcity}</td><td>限量瓶數：≤100 瓶 12 分、≤500 9 分、≤2,000 6 分、≤10,000 3 分、不詳 0 分；酒廠已關閉或封存 +8；酒齡 40 年或以上 +5、25 年 +3、18 年 +1；最多 25 分。${scaled('scarcity', 25)}</td></tr>
+          <tr><td>出場難度</td><td class="num">${w.exit}</td><td>近 24 個月有成交嘅拍賣行數目：3 間或以上 6 分、2 間 4 分、1 間 2 分；加出場成本分（設定而家係 ${exitPct}%）：≤15% 9 分、≤25% 6 分、≤35% 3 分、以上 0 分。${scaled('exit', 15)}</td></tr>
+          <tr><td>酒廠基本面</td><td class="num">${w.fundamentals}</td><td>由 5 分起計。過去 180 日每則連到呢間酒廠／品牌嘅「投資者焦點」新聞：利好 +、利淡 −，幅度 = 重要性 ÷ 5 × (1 − 日數 ÷ 180)，越舊影響越細；結果夾喺 0–10。${scaled('fundamentals', 10)}</td></tr>
+        </tbody>
+      </table>
+      <h4>Tier</h4>
+      <p>A：${tc.A} 分或以上　B：${tc.B}–${tc.A - 1}　C：${tc.C}–${tc.B - 1}　低：${tc.C} 分以下</p>
+      <h4>投資卡</h4>
+      <ul>
+        <li><b>參考買入價</b> = 近 12 個月成交中位數（括號係樣本數）。</li>
+        <li><b>目標價、最低可接受出售價、預計持有期</b>：由你輸入，AI 唔會自己估。</li>
+        <li><b>出場成本</b> = 目標價 × ${exitPct}%（賣方佣金 + 運費 + 保險，可喺「設定」改）。</li>
+        <li><b>回報風險比 RRR</b> = (目標價 − 出場成本 − 參考買入價) ÷ (參考買入價 − 最低可接受出售價)。分母係 0 或負數，或者欠資料，就顯示「未能計算」。例如 RRR 2 = 潛在回報係潛在損失嘅 2 倍。</li>
+      </ul>
+      <h4>持有回報圖</h4>
+      <p>假設喺某一年用嗰年成交中位數買入，今日用近 12 個月成交中位數扣除出場成本（${exitPct}%）賣出，計出每年平均回報。過往表現唔代表將來。</p>
+      <h4>幾時重算</h4>
+      <p>新增、修改或刪除價格；修改酒款資料；有投資者焦點新聞連到相關酒廠／品牌；或者喺「設定」改權重或出場成本。每次重算都會保存所有計算數據，可以覆核。</p>
+      <h4>前台顯示</h4>
+      <p>公開「酒款」頁只顯示 Tier 同總分，唔顯示五項分數、投資卡或者你嘅目標價。</p>
+    </div>
+  </details>`;
+}
+
 export async function renderEditions(panel) {
   if (!entities.length) entities = await api('admin/entities-all').catch(() => []);
+  if (!settingsCache) settingsCache = await api('admin/settings').catch(() => ({}));
   const p = new URLSearchParams({ q: listState.q, tier: listState.tier, sort: listState.sort, page: listState.page });
   const d = await api(`admin/editions?${p}`);
   const pages = Math.max(1, Math.ceil(d.total / d.pageSize));
@@ -57,7 +107,7 @@ export async function renderEditions(panel) {
       </tbody></table></div>
     <div class="pager"><button class="btn small" data-epg="-1" ${listState.page <= 1 ? 'disabled' : ''}>上一頁</button>
       <span>${listState.page} / ${pages}</span><button class="btn small" data-epg="1" ${listState.page >= pages ? 'disabled' : ''}>下一頁</button></div>
-    <p class="note">評分只作研究排序，並非買入建議。</p>`;
+    ${scoringHelp(settingsCache)}`;
   let timer;
   $('eq').oninput = (e) => { clearTimeout(timer); timer = setTimeout(() => { listState = { ...listState, q: e.target.value, page: 1 }; renderEditions(panel).then(() => { $('eq').focus(); }); }, 300); };
   $('etier').onchange = (e) => { listState = { ...listState, tier: e.target.value, page: 1 }; renderEditions(panel); };
@@ -273,6 +323,7 @@ function renderReturns(data) {
     ? `<div class="score-head"><span class="tier tier-${s.tier}">${s.tier === 'low' ? '低' : s.tier}</span><b class="big">${s.total}</b><span class="sub">/ 100</span></div>${PART_LABELS.map(([k, l, mx]) => part(k, l, mx)).join('')}`
     : `<p>${esc(STATUS[s?.status] || '未評分')}${s?.status === 'insufficient_data' ? '：過去 24 個月同版本成交少於 3 次，唔計總分。' : s?.status === 'needs_review' ? '：欠裝瓶年份而又有同名版本，或價格容量同版本唔一致。' : ''}</p>`}
         <p class="note">評分只作研究排序，並非買入建議。最近計算：${esc(day(s?.computed_at))}</p>
+        ${scoringHelp(settingsCache)}
         <h3 style="margin-top:12px">投資卡</h3>
         <dl class="kv">
           <dt>參考買入價</dt><dd>${money(c?.buyRef)}${c ? `（樣本 ${c.sample}）` : ''}</dd>
@@ -444,7 +495,7 @@ export async function renderSettings(panel) {
     ev.preventDefault();
     const fd = Object.fromEntries(new FormData(ev.target));
     const score_weights = Object.fromEntries(PART_LABELS.map(([k]) => [k, Number(fd[`w_${k}`])]));
-    try { await api('admin/settings', { method: 'PATCH', body: { default_currency: fd.default_currency, exit_cost_pct: fd.exit_cost_pct, score_weights } }); toast('已儲存，評分已重算'); } catch (err) { toast(err.message); }
+    try { await api('admin/settings', { method: 'PATCH', body: { default_currency: fd.default_currency, exit_cost_pct: fd.exit_cost_pct, score_weights } }); settingsCache = null; toast('已儲存，評分已重算'); } catch (err) { toast(err.message); }
   };
   $('demo-load').onclick = async () => { await api('admin/demo', { method: 'POST' }); toast('已載入示範資料'); };
   $('demo-clear').onclick = async () => { if (!window.confirm('清除所有示範酒款同價格？')) return; await api('admin/demo', { method: 'DELETE' }); toast('已清除'); };

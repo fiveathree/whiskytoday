@@ -305,6 +305,14 @@ details.bottle form { margin-top: 10px; }
 .rbox small { color: var(--faint); }
 .w-foot { padding: 6px 24px 12px; margin: 0; }
 
+.score-help { border: 1px solid var(--gold-faint); border-radius: var(--radius); padding: 6px 12px; margin-top: 4px; }
+.score-help summary { cursor: pointer; color: var(--gold); font-size: 13px; }
+.help-body { font-size: 13px; line-height: 1.6; max-height: 46vh; overflow: auto; padding: 4px 2px; }
+.help-body h4 { margin: 10px 0 4px; font-size: 13px; color: var(--ivory); }
+.help-body ul { margin: 0; padding-left: 18px; }
+.help-body p { margin: 0; }
+.help-table td, .help-table th { vertical-align: top; }
+
 .admin-link { color: var(--muted); font-size: 13px; text-decoration: none; letter-spacing: .06em; }
 .admin-link:hover { color: var(--gold); }
 
