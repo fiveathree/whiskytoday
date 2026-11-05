@@ -1,5 +1,5 @@
 // Admin: editions scan table, edition editor (details, prices + chart, returns, bottles, media, news), CSV import, settings.
-import { esc, safeUrl, api, toast } from './common.js';
+import { esc, safeUrl, api, toast, info } from './common.js';
 import { timeChart, signedBars, legend } from './charts.js';
 
 const $ = (id) => document.getElementById(id);
@@ -31,9 +31,8 @@ function scoringHelp(s) {
   const exitPct = Number(s?.exit_cost_pct ?? 15);
   const scaled = (k, base) => (w[k] === base ? '' : `（設定權重 ${w[k]}，按比例由 ${base} 分換算）`);
   return `
-  <details class="score-help">
-    <summary>評分點樣計？（總分 100，只作研究排序，並非買入建議）</summary>
-    <div class="help-body">
+    <div>
+      <p><b>總分 100，只作研究排序，並非買入建議。</b></p>
       <h4>先決條件</h4>
       <ul>
         <li>只用同一酒款版本嘅<b>成交價</b>計：拍賣成交（連買家佣金）及私人成交。酒商叫價、建議零售價只作參考，唔計。</li>
@@ -67,8 +66,7 @@ function scoringHelp(s) {
       <p>新增、修改或刪除價格；修改酒款資料；有投資者焦點新聞連到相關酒廠／品牌；或者喺「設定」改權重或出場成本。每次重算都會保存所有計算數據，可以覆核。</p>
       <h4>前台顯示</h4>
       <p>公開「酒款」頁只顯示 Tier 同總分，唔顯示五項分數、投資卡或者你嘅目標價。</p>
-    </div>
-  </details>`;
+    </div>`;
 }
 
 export async function renderEditions(panel) {
@@ -86,6 +84,7 @@ export async function renderEditions(panel) {
         <div class="stat"><div class="v">${d.summary.insufficient}</div><div class="l">資料不足</div></div>
         <div class="stat"><div class="v">${d.summary.review}</div><div class="l">待核實</div></div>
       </div>
+      <span class="with-info note">評分點樣計 ${info('評分點樣計？', scoringHelp(settingsCache))}</span>
       <span style="flex:1"></span>
       <input class="field" id="eq" placeholder="搜尋酒款／酒廠" value="${esc(listState.q)}" style="max-width:200px">
       <select class="field" id="etier" style="width:auto">${['', 'A', 'B', 'C', 'low'].map((t) => `<option value="${t}"${t === listState.tier ? ' selected' : ''}>${t ? `Tier ${t === 'low' ? '低' : t}` : '所有 Tier'}</option>`).join('')}</select>
@@ -106,8 +105,7 @@ export async function renderEditions(panel) {
         <td>${esc(day(r.lastNews))}</td></tr>`).join('') || '<tr><td colspan="13">未有酒款。可以撳「新增酒款」，或者去「設定」載入示範資料。</td></tr>'}
       </tbody></table></div>
     <div class="pager"><button class="btn small" data-epg="-1" ${listState.page <= 1 ? 'disabled' : ''}>上一頁</button>
-      <span>${listState.page} / ${pages}</span><button class="btn small" data-epg="1" ${listState.page >= pages ? 'disabled' : ''}>下一頁</button></div>
-    ${scoringHelp(settingsCache)}`;
+      <span>${listState.page} / ${pages}</span><button class="btn small" data-epg="1" ${listState.page >= pages ? 'disabled' : ''}>下一頁</button></div>`;
   let timer;
   $('eq').oninput = (e) => { clearTimeout(timer); timer = setTimeout(() => { listState = { ...listState, q: e.target.value, page: 1 }; renderEditions(panel).then(() => { $('eq').focus(); }); }, 300); };
   $('etier').onchange = (e) => { listState = { ...listState, tier: e.target.value, page: 1 }; renderEditions(panel); };
@@ -236,8 +234,7 @@ function priceLookup(e) {
     ['wsky1', `https://www.google.com/search?q=${encodeURIComponent(`site:wsky1.com ${q}`)}`],
     ['Google 拍賣結果', `https://www.google.com/search?q=${encodeURIComponent(`"${q}" auction result`)}`],
   ];
-  return `<div class="toolbar lookup"><span class="note">查價捷徑：</span>${links.map(([n, u]) => `<a class="btn small" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(n)} ↗</a>`).join('')}
-    <span class="note">只供你自己查閱。請只輸入你核實過嘅成交，並填返來源連結；唔好大量複製其他網站嘅數據（Whisky Hunter 條款禁止商業轉載）。</span></div>`;
+  return `<div class="toolbar lookup"><span class="note with-info">查價捷徑 ${info('查價捷徑', '<p>每個掣會喺新分頁打開嗰個網站嘅搜尋結果，用呢支酒嘅英文名搜尋。系統本身唔會讀取或者複製佢哋嘅資料。</p><p>只供你自己查閱：請只輸入你核實過嘅成交，並填返來源連結；唔好大量複製其他網站嘅數據（Whisky Hunter 條款禁止商業轉載，wsky1 數據未有授權）。</p>')}</span>${links.map(([n, u]) => `<a class="btn small" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(n)} ↗</a>`).join('')}</div>`;
 }
 function renderPrices(data, id, done) {
   const ps = data.prices;
@@ -318,12 +315,11 @@ function renderReturns(data) {
   $('ed-body').innerHTML = `
     <div class="two">
       <div class="chart-card">
-        <h3>評分</h3>
+        <h3 class="with-info">評分 ${info('評分點樣計？', scoringHelp(settingsCache))}</h3>
         ${s?.status === 'scored'
     ? `<div class="score-head"><span class="tier tier-${s.tier}">${s.tier === 'low' ? '低' : s.tier}</span><b class="big">${s.total}</b><span class="sub">/ 100</span></div>${PART_LABELS.map(([k, l, mx]) => part(k, l, mx)).join('')}`
     : `<p>${esc(STATUS[s?.status] || '未評分')}${s?.status === 'insufficient_data' ? '：過去 24 個月同版本成交少於 3 次，唔計總分。' : s?.status === 'needs_review' ? '：欠裝瓶年份而又有同名版本，或價格容量同版本唔一致。' : ''}</p>`}
-        <p class="note">評分只作研究排序，並非買入建議。最近計算：${esc(day(s?.computed_at))}</p>
-        ${scoringHelp(settingsCache)}
+        <p class="note">最近計算：${esc(day(s?.computed_at))}</p>
         <h3 style="margin-top:12px">投資卡</h3>
         <dl class="kv">
           <dt>參考買入價</dt><dd>${money(c?.buyRef)}${c ? `（樣本 ${c.sample}）` : ''}</dd>
@@ -335,9 +331,8 @@ function renderReturns(data) {
         </dl>
       </div>
       <div class="chart-card">
-        <h3>持有回報：如果喺某年買入，今日賣出（年化，已扣出場成本）</h3>
+        <h3 class="with-info">持有回報：如果喺某年買入，今日賣出（年化） ${info('持有回報點計？', `<p>假設喺某一年用嗰年嘅成交中位數買入，今日用近 12 個月成交中位數賣出，賣出價先扣出場成本（${exitPct}%），再計每年平均回報。</p><p>需要最少兩年唔同年份嘅成交，加上近 12 個月有成交，先計得到。</p><p>過往表現唔代表將來，並非投資建議。</p>`)}</h3>
         <div class="chart" id="rchart" style="height:240px"></div>
-        <p class="note">買入價＝嗰年成交中位數；賣出價＝近 12 個月成交中位數 × (1 − ${exitPct}%)。過往表現不代表將來，並非投資建議。</p>
       </div>
     </div>`;
   if (rows.length) signedBars($('rchart'), rows, { fmt: (v) => `${(v * 100).toFixed(1)}%`, height: 240, ariaLabel: '持有回報' });
@@ -350,7 +345,7 @@ const RATING_SOURCES = [['Whiskybase', 100], ['Whisky Advocate', 100], ['Whiskyf
 function renderRatings(data, id, done) {
   const r = data.ratings || [];
   $('ed-body').innerHTML = `
-    <p class="note">喺網上搵到嘅評分或者獎項，連埋來源連結一齊記低，前台會同我哋自己嘅評分並排顯示。為免違反網站條款，系統唔會自動抓取（例如 Whiskybase 唔准程式讀取），請你自己輸入。</p>
+    <p class="note with-info">網上評分 ${info('網上評分', '<p>喺網上搵到嘅評分或者獎項，連埋來源連結一齊記低，前台「酒款」頁會同我哋自己嘅評級並排顯示。</p><p>為免違反網站條款，系統唔會自動抓取（例如 Whiskybase 唔准程式讀取），所以要你自己輸入。揀常見來源會自動填返滿分；每個評分可以設定公唔公開。</p>')}</p>
     <form id="r-form" class="inline">
       <input class="field" name="source" list="r-sources" placeholder="來源，例如 Whiskybase" required>
       <datalist id="r-sources">${RATING_SOURCES.map(([n]) => `<option>${esc(n)}</option>`).join('')}</datalist>
@@ -396,7 +391,7 @@ function renderBottles(data, id, done) {
       <label class="full">私人備註（永不公開）<input class="field" name="private_note" value="${esc(x.private_note ?? '')}"></label>
       <div class="full form-actions"><button class="btn solid">${x.id ? '儲存單瓶' : '新增單瓶'}</button>${x.id ? `<button class="btn danger" type="button" data-bdel="${esc(x.id)}">刪除</button>` : ''}</div>
     </form>`;
-  $('ed-body').innerHTML = `<p class="note">每支實際單瓶可以記低瓶況同成本。成本同私人備註只限後台，分享頁永遠唔會顯示。</p>
+  $('ed-body').innerHTML = `<p class="note with-info">單瓶 ${info('單瓶', '<p>同一個酒款版本，每支實際嘅酒瓶況可以唔同：可以逐支記低瓶號、酒位、封口、酒標、盒況同購入年份。</p><p><b>購入成本、來源證明同私人備註只限後台</b>，前台同分享頁永遠唔會顯示。</p>')}</p>
     ${b.map((x) => `<details class="bottle"><summary>${esc(x.bottle_number || '單瓶')} · ${esc(x.fill_level || '')}${x.cost_minor != null ? ` · 成本 ${money(x.cost_minor, x.cost_currency)}` : ''}</summary>${form(x)}</details>`).join('')}
     <details class="bottle" ${b.length ? '' : 'open'}><summary>＋ 新增單瓶</summary>${form()}</details>`;
   $('ed-body').querySelectorAll('.bottle-form').forEach((f) => {
@@ -452,8 +447,7 @@ function openCsv(listPanel) {
   dialogShell('CSV 匯入價格');
   $('ed-tabs').innerHTML = '';
   $('ed-body').innerHTML = `
-    <p class="note">欄位同價格表一樣。<a href="data:text/csv;charset=utf-8,${encodeURIComponent(CSV_TEMPLATE)}" download="whiskytoday-prices-template.csv">下載範本</a>。
-      edition_slug 喺酒款資料入面搵到；price_type 用：auction_total、private_sale、auction_hammer、dealer_ask、msrp、auction_unsold；日期格式 YYYY-MM-DD。</p>
+    <p class="note with-info"><a href="data:text/csv;charset=utf-8,${encodeURIComponent(CSV_TEMPLATE)}" download="whiskytoday-prices-template.csv">下載範本</a> ${info('CSV 格式', '<p>欄位同價格表一樣，第一行係欄位名。</p><ul><li><b>edition_slug</b>：酒款代號，喺酒款資料入面搵到</li><li><b>price_type</b>：auction_total（拍賣連佣金）、private_sale、auction_hammer、dealer_ask、msrp、auction_unsold（流拍）</li><li><b>amount</b>：金額，流拍可留空</li><li><b>currency</b>：HKD、USD、GBP、EUR、JPY、CNY、SGD、TWD</li><li><b>observed_at</b>：日期，格式 YYYY-MM-DD</li><li>其他：market、venue、lot_number、condition_note、source_url、volume_ml、is_public（yes／no）</li></ul><p>先撳「預覽」：有錯嘅行會標紅，唔會匯入；確認冇問題再撳「匯入正確嘅行」。</p>')}</p>
     <input class="field" type="file" id="csv-file" accept=".csv,text/csv">
     <textarea class="field" id="csv-text" rows="6" placeholder="或者直接貼上 CSV 內容"></textarea>
     <div class="form-actions"><button class="btn" id="csv-preview">預覽</button><button class="btn solid" id="csv-commit" disabled>匯入正確嘅行</button></div>
@@ -482,15 +476,13 @@ export async function renderSettings(panel) {
   panel.innerHTML = `<div class="settings-wrap">
     <form id="set-form" class="grid-form" style="max-width:720px">
       <label>預設顯示幣種<select class="field" name="default_currency">${['HKD', 'USD'].map((c) => `<option${c === s.default_currency ? ' selected' : ''}>${c}</option>`).join('')}</select></label>
-      <label>出場成本 %<input class="field" name="exit_cost_pct" type="number" step="0.5" value="${esc(s.exit_cost_pct || 15)}">
-        <span class="note">即係賣走一支酒時要俾出去嘅費用，佔成交價百分比：拍賣行收賣家嘅佣金（連稅、上拍費）＋運費＋運送期間保險。預設 15%。用喺評分「出場難度」、投資卡「出場成本」同 RRR，以及持有回報圖（賣出價會先扣呢個 %）。</span></label>
+      <label><span class="with-info">出場成本 % ${info('出場成本係咩？', '<p>即係<b>賣走一支酒時要俾出去嘅費用</b>，用成交價百分比表示：</p><ul><li>拍賣行收賣家嘅佣金（通常仲有稅、上拍費）</li><li>運費</li><li>運送期間保險</li></ul><p>預設 15%：例如賣 HK$100,000，大約 HK$15,000 要俾出去，實收 HK$85,000。</p><p>用喺：評分「出場難度」（越低分越高）、投資卡「出場成本」同 RRR、持有回報圖（賣出價會先扣呢個 %）。改完所有評分會自動重算。</p>')}</span><input class="field" name="exit_cost_pct" type="number" step="0.5" value="${esc(s.exit_cost_pct || 15)}"></label>
       <fieldset class="full"><legend>評分權重（加埋要等於 100）</legend>
         ${PART_LABELS.map(([k, l]) => `<label>${l}<input class="field" name="w_${k}" type="number" value="${w[k]}"></label>`).join('')}
       </fieldset>
       <div class="full form-actions"><button class="btn solid">儲存並重算所有評分</button></div>
     </form>
-    <h3 style="margin-top:18px">示範資料</h3>
-    <p class="note">⚠ 示範資料全部係<b>虛構</b>嘅：酒款、酒廠（例如「示範酒廠・格蘭摩拉」）、拍賣行（「示範拍賣行甲」）都唔存在，價格係程式按設定嘅升幅加隨機波動自動砌出嚟，唔係真實成交。只用嚟睇評分表、價格圖、回報圖同前台酒款頁嘅效果，名稱都有「示範」字樣，正式使用前請撳「清除示範資料」。</p>
+    <h3 class="with-info" style="margin-top:18px">示範資料（全部虛構） ${info('示範資料係咩？', '<p>⚠ 示範資料<b>全部係虛構</b>嘅：酒款、酒廠（例如「示範酒廠・格蘭摩拉」）、拍賣行（「示範拍賣行甲」）都唔存在。</p><p>價格係程式按每支酒預設嘅起始價同每年升幅，再加隨機上落自動砌出嚟，唔係真實成交。</p><p>只用嚟睇評分表、價格圖、回報圖同前台酒款頁嘅效果；名稱都有「示範」字樣。正式使用前請撳「清除示範資料」。</p>')}</h3>
     <div class="form-actions"><button class="btn" id="demo-load">載入示範資料</button><button class="btn danger" id="demo-clear">清除示範資料</button></div></div>`;
   $('set-form').onsubmit = async (ev) => {
     ev.preventDefault();

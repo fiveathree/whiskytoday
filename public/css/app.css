@@ -320,7 +320,8 @@ details.bottle form { margin-top: 10px; }
 .help-table td, .help-table th { vertical-align: top; }
 
 /* Info "i" button with a fixed-size popover */
-.with-info { display: flex; align-items: center; gap: 8px; }
+.with-info { display: inline-flex; align-items: center; gap: 6px; }
+h3.with-info, p.with-info { display: flex; }
 .info-btn { flex: none; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--gold-dim); background: none; color: var(--gold);
   font: italic 600 12px/1 var(--serif); cursor: pointer; display: inline-grid; place-items: center; padding: 0; }
 .info-btn:hover, .info-btn[aria-expanded="true"] { background: var(--gold); color: var(--bg-raise); }
@@ -334,6 +335,9 @@ details.bottle form { margin-top: 10px; }
 .info-pop-body h4 { margin: 10px 0 4px; font-size: 13px; }
 .info-pop-body ul { margin: 0; padding-left: 18px; }
 .info-pop-body p { margin: 0 0 6px; }
+.info-pop-body table { width: 100%; font-size: 12.5px; }
+.info-pop-body td, .info-pop-body th { padding: 4px 6px; vertical-align: top; }
+.info-pop-body td:first-child, .info-pop-body th:first-child { white-space: nowrap; }
 
 .settings-wrap { overflow: auto; min-height: 0; }
 

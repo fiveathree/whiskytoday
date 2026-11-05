@@ -130,6 +130,65 @@ export function initTheme(btn) {
   show();
 }
 
+// Shared "i" info popover: info(title, html) returns a button; hover opens it with a mouse,
+// tap opens / closes it on phones. One fixed-size popover element for the whole page.
+const infoRegistry = new Map();
+let infoSeq = 0;
+let infoPop;
+let infoBtn;
+let infoTimer;
+export function info(title, html) {
+  const id = `i${++infoSeq}`;
+  infoRegistry.set(id, { title, html });
+  return `<button type="button" class="info-btn" data-info="${id}" aria-label="${esc(title)}" aria-haspopup="dialog">i</button>`;
+}
+function infoClose() { if (infoPop) infoPop.hidden = true; if (infoBtn) infoBtn.setAttribute('aria-expanded', 'false'); infoBtn = null; }
+function infoOpen(btn) {
+  const item = infoRegistry.get(btn.dataset.info);
+  if (!item) return;
+  clearTimeout(infoTimer);
+  if (!infoPop) {
+    infoPop = document.createElement('div');
+    infoPop.className = 'info-pop';
+    infoPop.setAttribute('role', 'dialog');
+    infoPop.hidden = true;
+    infoPop.innerHTML = '<div class="info-pop-head"><b></b><button type="button" class="close" aria-label="Close">×</button></div><div class="info-pop-body"></div>';
+    document.body.append(infoPop);
+    infoPop.querySelector('.close').addEventListener('click', infoClose);
+    infoPop.addEventListener('mouseenter', () => clearTimeout(infoTimer));
+    infoPop.addEventListener('mouseleave', () => { infoTimer = setTimeout(infoClose, 200); });
+  }
+  // A modal <dialog> sits in the browser's top layer; put the popover inside it so it shows above.
+  const host = btn.closest('dialog[open]') || document.body;
+  if (infoPop.parentElement !== host) host.append(infoPop);
+  if (infoBtn && infoBtn !== btn) infoBtn.setAttribute('aria-expanded', 'false');
+  infoBtn = btn;
+  infoPop.querySelector('b').textContent = item.title;
+  infoPop.querySelector('.info-pop-body').innerHTML = item.html; // trusted: written in our own code
+  infoPop.hidden = false;
+  btn.setAttribute('aria-expanded', 'true');
+  if (window.innerWidth <= 860) { infoPop.classList.add('centered'); infoPop.style.left = ''; infoPop.style.top = ''; return; }
+  infoPop.classList.remove('centered');
+  const r = btn.getBoundingClientRect();
+  const w = infoPop.offsetWidth;
+  const h = infoPop.offsetHeight;
+  infoPop.style.left = `${Math.max(12, Math.min(window.innerWidth - w - 12, r.left))}px`;
+  infoPop.style.top = `${r.bottom + 8 + h > window.innerHeight - 12 ? Math.max(12, r.top - h - 8) : r.bottom + 8}px`;
+}
+if (typeof document !== 'undefined') {
+  const hoverable = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest?.('[data-info]');
+    if (btn) { e.preventDefault(); e.stopPropagation(); if (infoBtn === btn && !infoPop.hidden) infoClose(); else infoOpen(btn); return; }
+    if (infoPop && !infoPop.hidden && !infoPop.contains(e.target)) infoClose();
+  }, true);
+  if (hoverable) {
+    document.addEventListener('mouseover', (e) => { const b = e.target.closest?.('[data-info]'); if (b) infoOpen(b); });
+    document.addEventListener('mouseout', (e) => { const b = e.target.closest?.('[data-info]'); if (b) infoTimer = setTimeout(infoClose, 200); });
+  }
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') infoClose(); });
+}
+
 export async function api(path, opts = {}) {
   const res = await fetch(`/api/${path}`, {
     ...opts,
