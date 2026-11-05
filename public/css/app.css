@@ -335,6 +335,8 @@ details.bottle form { margin-top: 10px; }
 .info-pop-body ul { margin: 0; padding-left: 18px; }
 .info-pop-body p { margin: 0 0 6px; }
 
+.settings-wrap { overflow: auto; min-height: 0; }
+
 .admin-link { color: var(--muted); font-size: 13px; text-decoration: none; letter-spacing: .06em; }
 .admin-link:hover { color: var(--gold); }
 

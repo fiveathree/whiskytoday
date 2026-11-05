@@ -479,18 +479,19 @@ export async function renderSettings(panel) {
   const s = await api('admin/settings');
   let w = { trend: 30, activity: 20, scarcity: 25, exit: 15, fundamentals: 10 };
   try { w = { ...w, ...JSON.parse(s.score_weights || '{}') }; } catch { /* default */ }
-  panel.innerHTML = `
+  panel.innerHTML = `<div class="settings-wrap">
     <form id="set-form" class="grid-form" style="max-width:720px">
       <label>預設顯示幣種<select class="field" name="default_currency">${['HKD', 'USD'].map((c) => `<option${c === s.default_currency ? ' selected' : ''}>${c}</option>`).join('')}</select></label>
-      <label>出場成本（賣方佣金＋運費＋保險，%）<input class="field" name="exit_cost_pct" type="number" step="0.5" value="${esc(s.exit_cost_pct || 15)}"></label>
+      <label>出場成本 %<input class="field" name="exit_cost_pct" type="number" step="0.5" value="${esc(s.exit_cost_pct || 15)}">
+        <span class="note">即係賣走一支酒時要俾出去嘅費用，佔成交價百分比：拍賣行收賣家嘅佣金（連稅、上拍費）＋運費＋運送期間保險。預設 15%。用喺評分「出場難度」、投資卡「出場成本」同 RRR，以及持有回報圖（賣出價會先扣呢個 %）。</span></label>
       <fieldset class="full"><legend>評分權重（加埋要等於 100）</legend>
         ${PART_LABELS.map(([k, l]) => `<label>${l}<input class="field" name="w_${k}" type="number" value="${w[k]}"></label>`).join('')}
       </fieldset>
       <div class="full form-actions"><button class="btn solid">儲存並重算所有評分</button></div>
     </form>
     <h3 style="margin-top:18px">示範資料</h3>
-    <p class="note">載入約 10 支虛構示範酒款（名稱有「示範」字樣），即刻睇到評分表、價格圖同回報圖效果。示範資料唔會冒充真實成交。</p>
-    <div class="form-actions"><button class="btn" id="demo-load">載入示範資料</button><button class="btn danger" id="demo-clear">清除示範資料</button></div>`;
+    <p class="note">⚠ 示範資料全部係<b>虛構</b>嘅：酒款、酒廠（例如「示範酒廠・格蘭摩拉」）、拍賣行（「示範拍賣行甲」）都唔存在，價格係程式按設定嘅升幅加隨機波動自動砌出嚟，唔係真實成交。只用嚟睇評分表、價格圖、回報圖同前台酒款頁嘅效果，名稱都有「示範」字樣，正式使用前請撳「清除示範資料」。</p>
+    <div class="form-actions"><button class="btn" id="demo-load">載入示範資料</button><button class="btn danger" id="demo-clear">清除示範資料</button></div></div>`;
   $('set-form').onsubmit = async (ev) => {
     ev.preventDefault();
     const fd = Object.fromEntries(new FormData(ev.target));

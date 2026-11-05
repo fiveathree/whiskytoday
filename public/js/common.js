@@ -11,7 +11,7 @@ const STR = {
   'nav.trends': ['市場趨勢', 'Trends'],
   'nav.whisky': ['酒款', 'Collection'],
   'title.whisky': ['精選酒款', 'Collection'], 'search.whisky': ['搜尋酒款或酒廠…', 'Search bottlings or distilleries…'],
-  'f.tier': ['評級', 'Tier'], 'w.items': ['款', 'bottlings'], 'w.last': ['最近公開成交', 'Last public sale'],
+  'f.tier': ['評級', 'Tier'], 'tier.A': ['A級', 'Tier A'], 'tier.B': ['B級', 'Tier B'], 'tier.C': ['C級', 'Tier C'], 'w.items': ['款', 'bottlings'], 'w.last': ['最近公開成交', 'Last public sale'],
   'w.demo': ['示範', 'Demo'], 'w.empty': ['暫時未有酒款', 'No bottlings yet'],
   'w.overview': ['概覽', 'Overview'], 'w.prices': ['價格', 'Prices'], 'w.news': ['相關消息', 'Related news'],
   'w.distillery': ['酒廠', 'Distillery'], 'w.age': ['酒齡', 'Age'], 'w.vintage': ['蒸餾年份', 'Vintage'], 'w.bottled': ['裝瓶年份', 'Bottled'],
