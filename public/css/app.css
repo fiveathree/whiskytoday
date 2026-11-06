@@ -425,9 +425,12 @@ h3.with-info, p.with-info { display: flex; }
 .calc-side { overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
 .calc-box { border: 1px solid var(--gold-faint); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 7px; }
 .calc-box h3 { font-size: 17px; }
-.calc-box-head { display: flex; align-items: center; justify-content: space-between; }
 .calc-field { display: grid; grid-template-columns: 1fr 92px; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
 .calc-field i { font-style: normal; color: var(--faint); }
+.calc-cask span { white-space: nowrap; }
+.calc-cask { display: flex; align-items: center; justify-content: flex-end; gap: 5px; font-size: 11.5px; color: var(--faint); }
+.calc-cask .field { width: 72px; border-color: var(--gold-dim); padding: 3px 6px; font-size: 12px; background: transparent; text-align: right; }
+.calc-field .field[readonly], .cost-grid .field[readonly] { color: var(--gold); border-style: dashed; }
 .calc-field.total { border-top: 1px solid var(--gold-faint); padding-top: 7px; color: var(--ivory); }
 .calc-field.total b { text-align: right; color: var(--gold); font-weight: 600; }
 .calc-note { line-height: 1.6; }
@@ -502,7 +505,9 @@ h3.with-info, p.with-info { display: flex; }
   .calc-table .del { padding: 4px 10px; }
   .calc-table tr.cost-row { display: block; margin-top: -10px; border-top: 0; border-radius: 0 0 var(--radius) var(--radius); background: var(--claim-bg); }
   .cost-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
-  .cost-grid .note { grid-column: 1 / -1; }
+  .cost-grid .note, .cost-grid .calc-cask { grid-column: 1 / -1; }
+  .cost-grid .calc-cask { justify-content: flex-start; }
+  .cost-grid .calc-cask .field { flex: 1; min-width: 0; width: auto; }
   .cost-grid label { flex-direction: column; align-items: stretch; gap: 3px; }
   .cost-grid .field { width: 100%; }
   .calc-table tfoot tr { border-color: var(--gold-dim); }

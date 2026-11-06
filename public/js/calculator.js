@@ -19,17 +19,26 @@ let region = 'hk';
 let showGbp = false;
 const state = {}; // region -> { params, rows }
 
-const blankRow = () => ({ name: '', qty: '', price: '', abv: '', volume: '0.7', cost: ['', '', '', ''], open: false });
+const blankRow = () => ({ name: '', qty: '', price: '', abv: '', volume: '0.7', cost: ['', '', '', ''], cask: ['', ''], open: false });
+
+// Liquid cost can be typed per bottle, or derived from a whole-cask price ÷ bottle count.
+const caskOn = (cask) => num(cask[0]) > 0 && num(cask[1]) > 0;
+const caskLiquid = (cask) => num(cask[0]) / num(cask[1]);
+function effCost(cost, cask) {
+  const c = [...cost];
+  if (caskOn(cask)) c[0] = caskLiquid(cask);
+  return c;
+}
 
 // Defaults: Excel seed < members' saved settings < latest daily FX rate.
 function defaultsFor(r) {
   const saved = server.params[r] || {};
-  const p = { ...DEFAULTS[r], ...saved, cost: [...(saved.cost || DEFAULTS[r].cost)] };
+  const p = { ...DEFAULTS[r], ...saved, cost: [...(saved.cost || DEFAULTS[r].cost)], cask: ['', ''] };
   if (server.fx[r]) p.fx = Number(server.fx[r].rate.toFixed(4));
   return p;
 }
 function reset(r) {
-  state[r] = { params: defaultsFor(r), rows: state[r]?.rows || [blankRow()] };
+  state[r] = { params: defaultsFor(r), rows: [blankRow()] };
 }
 
 const decimals = (r) => (['jp', 'tw'].includes(r) ? 0 : 2);
@@ -40,8 +49,8 @@ const pct = (v) => (v == null ? '—' : `${(v * 100).toFixed(1)}%`);
 // Unit price source for a row (§13.4): typed price > own four costs > regional cost calculator.
 function priceOf(row, s) {
   if (String(row.price).trim() !== '') return { value: num(row.price), mode: '手填' };
-  if (row.cost.some((c) => String(c).trim() !== '')) return { value: costTotal(row.cost), mode: '自訂成本' };
-  return { value: costTotal(s.params.cost), mode: '跟計算器' };
+  if (row.cost.some((c) => String(c).trim() !== '') || caskOn(row.cask)) return { value: costTotal(effCost(row.cost, row.cask)), mode: '自訂成本' };
+  return { value: costTotal(effCost(s.params.cost, s.params.cask)), mode: '跟計算器' };
 }
 
 function compute(r) {
@@ -59,7 +68,7 @@ function renderSide() {
   const fx = server.fx[region];
   $('side').innerHTML = `
     <div class="calc-box">
-      <div class="calc-box-head"><h3>參數</h3><button class="btn small" id="reset" type="button">回復預設</button></div>
+      <h3>參數</h3>
       ${PARAMS[region].map(([k, label, unit]) => `<label class="calc-field"><span>${esc(label)}${unit ? ` <i>${unit}</i>` : ''}</span>
         <input class="field num" inputmode="decimal" data-p="${k}" data-unit="${unit}" value="${esc(shown(unit, s.params[k]))}"></label>`).join('')}
       <p class="note">${fx ? `匯率日期：${esc(fx.date)}（每日自動更新）` : '未有每日匯率，暫用 Excel 預設匯率'}</p>
@@ -67,17 +76,30 @@ function renderSide() {
     <div class="calc-box">
       <h3>成本計算器（每瓶，GBP）</h3>
       ${COST_LABELS.map((l, i) => `<label class="calc-field"><span>${l}</span>
-        <input class="field num" inputmode="decimal" data-c="${i}" value="${esc(s.params.cost[i])}"></label>`).join('')}
+        <input class="field num" inputmode="decimal" data-c="${i}" value="${esc(s.params.cost[i])}"></label>${i === 0 ? caskInputs(s.params.cask, '') : ''}`).join('')}
       <div class="calc-field total"><span>每瓶成本</span><b id="cost-total"></b></div>
     </div>
     <p class="note calc-note">${esc(NOTES[region])}</p>`;
-  $('reset').onclick = () => { state[region].params = defaultsFor(region); renderSide(); update(); };
   $('side').oninput = (ev) => {
     const el = ev.target;
     if (el.dataset.p) state[region].params[el.dataset.p] = el.dataset.unit === '%' ? num(el.value) / 100 : el.value;
     if (el.dataset.c) state[region].params.cost[+el.dataset.c] = el.value;
+    if (el.dataset.k2) state[region].params.cask[+el.dataset.k2] = el.value;
     update();
   };
+}
+
+// "Whole cask ÷ bottles" inputs under the liquid cost. attr is '' for the side panel or 'data-r="i"' for a row.
+function caskInputs(cask, attr) {
+  return `<div class="calc-cask"><span>或整桶價</span><input class="field num" inputmode="decimal" ${attr} data-k2="0" value="${esc(cask[0])}" placeholder="GBP">
+    <span>÷</span><input class="field num" inputmode="decimal" ${attr} data-k2="1" value="${esc(cask[1])}" placeholder="瓶數"></div>`;
+}
+
+// When a cask price is filled in, the liquid input shows the derived average and becomes read-only.
+function syncLiquid(input, cost, cask) {
+  if (!input) return;
+  if (caskOn(cask)) { input.readOnly = true; input.value = caskLiquid(cask).toFixed(2); }
+  else if (input.readOnly) { input.readOnly = false; input.value = cost[0]; }
 }
 
 // ---------- Right column: wine table ----------
@@ -121,7 +143,7 @@ function renderTable() {
         ${cols.map(([k, l]) => `<td class="num out c-${k.replace('.', '-')}" data-label="${esc(l)}" data-o="${i}:${k}"></td>`).join('')}
         <td class="c-del"><button type="button" class="btn small del" data-del="${i}" ${s.rows.length < 2 ? 'disabled' : ''} aria-label="刪除">×</button></td>
       </tr>${row.open ? `<tr class="cost-row"><td colspan="${span}"><div class="cost-grid"><span class="note">此酒自己嘅成本（GBP）：</span>
-        ${COST_LABELS.map((l, c) => `<label>${l}<input class="field num" inputmode="decimal" data-r="${i}" data-rc="${c}" value="${esc(row.cost[c])}"></label>`).join('')}</div></td></tr>` : ''}`).join('')}
+        ${COST_LABELS.map((l, c) => `<label>${l}<input class="field num" inputmode="decimal" data-r="${i}" data-rc="${c}" value="${esc(row.cost[c])}"></label>${c === 0 ? caskInputs(row.cask, `data-r="${i}"`) : ''}`).join('')}</div></td></tr>` : ''}`).join('')}
     </tbody>
     <tfoot><tr><td class="c-name">總計</td><td class="num" data-label="瓶數" id="t-qty"></td><td></td><td></td><td></td>
       ${cols.map(([k, l]) => `<td class="num c-${k.replace('.', '-')}" data-label="${esc(l)}" id="t-${k.replace('.', '-')}"></td>`).join('')}<td></td></tr></tfoot>`;
@@ -134,7 +156,8 @@ function update() {
   const s = state[region];
   const { rows, results, totals } = compute(region);
   const ct = $('cost-total');
-  if (ct) ct.textContent = `£${gbp(costTotal(s.params.cost))}`;
+  if (ct) ct.textContent = `£${gbp(costTotal(effCost(s.params.cost, s.params.cask)))}`;
+  syncLiquid(document.querySelector('#side input[data-c="0"]'), s.params.cost, s.params.cask);
   const cols = columns(region);
   rows.forEach((row, i) => {
     for (const [k] of cols) {
@@ -143,6 +166,7 @@ function update() {
     }
     const priceInput = document.querySelector(`input[data-r="${i}"][data-k="price"]`);
     if (priceInput) priceInput.placeholder = gbp(row.priceInfo.value);
+    syncLiquid(document.querySelector(`input[data-r="${i}"][data-rc="0"]`), row.cost, row.cask);
     const mode = document.querySelector(`[data-mode="${i}"]`);
     if (mode) mode.textContent = row.priceInfo.mode;
   });
@@ -189,6 +213,12 @@ function downloadCsv() {
 
 // ---------- Events ----------
 $('regions').onclick = (ev) => { const b = ev.target.closest('[data-region]'); if (b) show(b.dataset.region); };
+// Reset every region: parameters back to defaults (latest FX) and the table back to one blank row.
+$('reset-all').onclick = () => {
+  if (!confirm('將所有地區嘅數字回復預設？已輸入嘅酒款會清空。')) return;
+  REGIONS.forEach(reset);
+  show(region);
+};
 $('add').onclick = () => { state[region].rows.push(blankRow()); renderTable(); };
 $('show-gbp').onchange = (ev) => { showGbp = ev.target.checked; renderTable(); };
 $('csv').onclick = downloadCsv;
@@ -199,6 +229,7 @@ $('table').oninput = (ev) => {
   if (!row) return;
   if (el.dataset.k) row[el.dataset.k] = el.value;
   if (el.dataset.rc) row.cost[+el.dataset.rc] = el.value;
+  if (el.dataset.k2) row.cask[+el.dataset.k2] = el.value;
   update();
 };
 $('table').onclick = (ev) => {
