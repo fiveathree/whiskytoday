@@ -31,6 +31,7 @@ function check(region, rows, expected, totals) {
     close(t.value, totals.value, `${region} total value`);
     close(t.tax, totals.tax, `${region} total tax`);
     close(t.total, totals.total, `${region} total incl. tax`);
+    close(t.perBottle, totals.total / totals.qty, `${region} average per bottle`);
   }
 }
 
@@ -122,4 +123,5 @@ test('zero import value gives no tax rate', () => {
   const r = calcRow('sg', DEFAULTS.sg, { price: 0, qty: 10, abv: 50, volume: 0.7 });
   assert.equal(r.rate, null);
   assert.equal(calcTotals([{ qty: 10 }], [r]).rate, null);
+  assert.equal(calcTotals([{ qty: '' }], [r]).perBottle, null);
 });

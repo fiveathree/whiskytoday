@@ -19,7 +19,8 @@ let region = 'hk';
 let showGbp = false;
 const state = {}; // region -> { params, rows }
 
-const blankRow = () => ({ name: '', qty: '', price: '', abv: '', volume: '0.7', cost: ['', '', '', ''], cask: ['', ''], open: false });
+// New rows carry the region's preset costs (bottling, label, logistics); liquid is left for the user to fill.
+const blankRow = (r) => ({ name: '', qty: '', price: '', abv: '', volume: '0.7', cost: ['', ...defaultsFor(r).cost.slice(1).map(String)], cask: ['', ''], open: true });
 
 // Liquid cost can be typed per bottle, or derived from a whole-cask price ÷ bottle count.
 const caskOn = (cask) => num(cask[0]) > 0 && num(cask[1]) > 0;
@@ -33,12 +34,12 @@ function effCost(cost, cask) {
 // Defaults: Excel seed < members' saved settings < latest daily FX rate.
 function defaultsFor(r) {
   const saved = server.params[r] || {};
-  const p = { ...DEFAULTS[r], ...saved, cost: [...(saved.cost || DEFAULTS[r].cost)], cask: ['', ''] };
+  const p = { ...DEFAULTS[r], ...saved, cost: [...(saved.cost || DEFAULTS[r].cost)] };
   if (server.fx[r]) p.fx = Number(server.fx[r].rate.toFixed(4));
   return p;
 }
 function reset(r) {
-  state[r] = { params: defaultsFor(r), rows: [blankRow()] };
+  state[r] = { params: defaultsFor(r), rows: [blankRow(r)] };
 }
 
 const decimals = (r) => (['jp', 'tw'].includes(r) ? 0 : 2);
@@ -46,21 +47,20 @@ const money = (v, r) => v.toLocaleString('en-US', { minimumFractionDigits: decim
 const gbp = (v) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const pct = (v) => (v == null ? '—' : `${(v * 100).toFixed(1)}%`);
 
-// Unit price source for a row (§13.4): typed price > own four costs > regional cost calculator.
-function priceOf(row, s) {
+// Unit price source for a row (§13.4): typed price > the row's own four costs.
+function priceOf(row) {
   if (String(row.price).trim() !== '') return { value: num(row.price), mode: '手填' };
-  if (row.cost.some((c) => String(c).trim() !== '') || caskOn(row.cask)) return { value: costTotal(effCost(row.cost, row.cask)), mode: '自訂成本' };
-  return { value: costTotal(effCost(s.params.cost, s.params.cask)), mode: '跟計算器' };
+  return { value: costTotal(effCost(row.cost, row.cask)), mode: '自訂成本' };
 }
 
 function compute(r) {
   const s = state[r];
-  const rows = s.rows.map((row) => ({ ...row, priceInfo: priceOf(row, s) }));
+  const rows = s.rows.map((row) => ({ ...row, priceInfo: priceOf(row) }));
   const results = rows.map((row) => calcRow(r, s.params, { price: row.priceInfo.value, qty: row.qty, abv: row.abv, volume: row.volume }));
   return { rows, results, totals: calcTotals(rows, results) };
 }
 
-// ---------- Left column: parameters, cost calculator, tax note ----------
+// ---------- Left column: parameters and tax note ----------
 const shown = (unit, v) => (unit === '%' ? +(num(v) * 100).toFixed(4) : v);
 
 function renderSide() {
@@ -73,23 +73,15 @@ function renderSide() {
         <input class="field num" inputmode="decimal" data-p="${k}" data-unit="${unit}" value="${esc(shown(unit, s.params[k]))}"></label>`).join('')}
       <p class="note">${fx ? `匯率日期：${esc(fx.date)}（每日自動更新）` : '未有每日匯率，暫用 Excel 預設匯率'}</p>
     </div>
-    <div class="calc-box">
-      <h3>成本計算器（每瓶，GBP）</h3>
-      ${COST_LABELS.map((l, i) => `<label class="calc-field"><span>${l}</span>
-        <input class="field num" inputmode="decimal" data-c="${i}" value="${esc(s.params.cost[i])}"></label>${i === 0 ? caskInputs(s.params.cask, '') : ''}`).join('')}
-      <div class="calc-field total"><span>每瓶成本</span><b id="cost-total"></b></div>
-    </div>
     <p class="note calc-note">${esc(NOTES[region])}</p>`;
   $('side').oninput = (ev) => {
     const el = ev.target;
     if (el.dataset.p) state[region].params[el.dataset.p] = el.dataset.unit === '%' ? num(el.value) / 100 : el.value;
-    if (el.dataset.c) state[region].params.cost[+el.dataset.c] = el.value;
-    if (el.dataset.k2) state[region].params.cask[+el.dataset.k2] = el.value;
     update();
   };
 }
 
-// "Whole cask ÷ bottles" inputs under the liquid cost. attr is '' for the side panel or 'data-r="i"' for a row.
+// "Whole cask ÷ bottles" inputs under a row's liquid cost; attr carries the row index.
 function caskInputs(cask, attr) {
   return `<div class="calc-cask"><span>或整桶價</span><input class="field num" inputmode="decimal" ${attr} data-k2="0" value="${esc(cask[0])}" placeholder="GBP">
     <span>÷</span><input class="field num" inputmode="decimal" ${attr} data-k2="1" value="${esc(cask[1])}" placeholder="瓶數"></div>`;
@@ -142,22 +134,19 @@ function renderTable() {
         <td class="c-in" data-label="容量 L">${input(i, 'volume', row.volume)}</td>
         ${cols.map(([k, l]) => `<td class="num out c-${k.replace('.', '-')}" data-label="${esc(l)}" data-o="${i}:${k}"></td>`).join('')}
         <td class="c-del"><button type="button" class="btn small del" data-del="${i}" ${s.rows.length < 2 ? 'disabled' : ''} aria-label="刪除">×</button></td>
-      </tr>${row.open ? `<tr class="cost-row"><td colspan="${span}"><div class="cost-grid"><span class="note">此酒自己嘅成本（GBP）：</span>
+      </tr>${row.open ? `<tr class="cost-row"><td colspan="${span}"><div class="cost-grid"><span class="note">此酒每瓶成本（GBP）：</span>
         ${COST_LABELS.map((l, c) => `<label>${l}<input class="field num" inputmode="decimal" data-r="${i}" data-rc="${c}" value="${esc(row.cost[c])}"></label>${c === 0 ? caskInputs(row.cask, `data-r="${i}"`) : ''}`).join('')}</div></td></tr>` : ''}`).join('')}
     </tbody>
     <tfoot><tr><td class="c-name">總計</td><td class="num" data-label="瓶數" id="t-qty"></td><td></td><td></td><td></td>
-      ${cols.map(([k, l]) => `<td class="num c-${k.replace('.', '-')}" data-label="${esc(l)}" id="t-${k.replace('.', '-')}"></td>`).join('')}<td></td></tr></tfoot>`;
+      ${cols.map(([k, l]) => `<td class="num c-${k.replace('.', '-')}" data-label="${esc(k === 'totalPer' ? `平均每瓶含稅價（${CURRENCY[region]}）` : l)}" id="t-${k.replace('.', '-')}"></td>`).join('')}<td></td></tr></tfoot>`;
   update();
 }
 
-const TOTAL_KEYS = ['value', 'tax', 'total', 'rate'];
+const TOTAL_KEYS = ['value', 'tax', 'total', 'rate', 'perBottle'];
 
 function update() {
   const s = state[region];
   const { rows, results, totals } = compute(region);
-  const ct = $('cost-total');
-  if (ct) ct.textContent = `£${gbp(costTotal(effCost(s.params.cost, s.params.cask)))}`;
-  syncLiquid(document.querySelector('#side input[data-c="0"]'), s.params.cost, s.params.cask);
   const cols = columns(region);
   rows.forEach((row, i) => {
     for (const [k] of cols) {
@@ -174,6 +163,7 @@ function update() {
   for (const [k] of cols) {
     const td = $(`t-${k.replace('.', '-')}`);
     if (td) td.textContent = TOTAL_KEYS.includes(k) ? cellValue(k, totals, region) : '';
+    if (td && k === 'totalPer') td.textContent = totals.perBottle == null ? '' : money(totals.perBottle, region);
   }
   const fx = s.params.fx;
   $('print-params').textContent = `${REGION_NAMES[region]}（${CURRENCY[region]}）· 匯率 GBP→${CURRENCY[region]} ${fx} · ${NOTES[region]}`;
@@ -195,13 +185,14 @@ function downloadCsv() {
   const { rows, results, totals } = compute(region);
   const cols = columns(region);
   const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-  const raw = (key, res) => (key === 'rate' ? (res.rate == null ? '' : (res.rate * 100).toFixed(1) + '%')
+  const raw = (key, res) => (key === 'totalPer' && res.perBottle !== undefined ? (res.perBottle == null ? '' : res.perBottle.toFixed(decimals(region)))
+    : key === 'rate' ? (res.rate == null ? '' : (res.rate * 100).toFixed(1) + '%')
     : (key.startsWith('tax.') ? res.taxes[key.slice(4)] : res[key]).toFixed(key === 'totalGbp' ? 2 : decimals(region)));
   const lines = [
     ['酒名', '瓶數', '單價（GBP）', '單價來源', '酒精度 %', '容量 L', ...cols.map(([, l]) => l)],
     ...rows.map((row, i) => [row.name, num(row.qty), row.priceInfo.value.toFixed(2), row.priceInfo.mode, row.abv, row.volume,
       ...cols.map(([k]) => raw(k, results[i]))]),
-    ['總計', totals.qty, '', '', '', '', ...cols.map(([k]) => (TOTAL_KEYS.includes(k) ? raw(k, totals) : ''))],
+    ['總計', totals.qty, '', '', '', '', ...cols.map(([k]) => (TOTAL_KEYS.includes(k) || k === 'totalPer' ? raw(k, totals) : ''))],
   ];
   const csv = '﻿' + lines.map((l) => l.map(q).join(',')).join('\r\n');
   const a = document.createElement('a');
@@ -219,7 +210,7 @@ $('reset-all').onclick = () => {
   REGIONS.forEach(reset);
   show(region);
 };
-$('add').onclick = () => { state[region].rows.push(blankRow()); renderTable(); };
+$('add').onclick = () => { state[region].rows.push(blankRow(region)); renderTable(); };
 $('show-gbp').onchange = (ev) => { showGbp = ev.target.checked; renderTable(); };
 $('csv').onclick = downloadCsv;
 $('print').onclick = () => window.print();

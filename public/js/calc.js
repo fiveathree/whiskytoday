@@ -118,11 +118,11 @@ export function calcRow(region, params, row) {
   };
 }
 
-// Totals row: sums plus the weighted tax rate (total tax / total value).
+// Totals row: sums, the weighted tax rate (total tax / total value) and the average cost per bottle incl. tax.
 export function calcTotals(rows, results) {
   const qty = rows.reduce((a, r) => a + num(r.qty), 0);
   const value = results.reduce((a, r) => a + r.value, 0);
   const tax = results.reduce((a, r) => a + r.tax, 0);
   const total = results.reduce((a, r) => a + r.total, 0);
-  return { qty, value, tax, total, rate: value ? tax / value : null };
+  return { qty, value, tax, total, rate: value ? tax / value : null, perBottle: qty ? total / qty : null };
 }
