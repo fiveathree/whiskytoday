@@ -425,12 +425,13 @@ h3.with-info, p.with-info { display: flex; }
 .calc-side { overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
 .calc-box { border: 1px solid var(--gold-faint); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 7px; }
 .calc-box h3 { font-size: 17px; }
+.calc-box summary { list-style: none; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+.calc-box summary::-webkit-details-marker { display: none; }
+.calc-box summary::after { content: '▾'; color: var(--gold); font-size: 13px; transition: transform .15s; }
+.calc-box:not([open]) summary::after { transform: rotate(-90deg); }
+.calc-box[open] summary { margin-bottom: 4px; }
 .calc-field { display: grid; grid-template-columns: 1fr 92px; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
 .calc-field i { font-style: normal; color: var(--faint); }
-.calc-cask span { white-space: nowrap; }
-.calc-cask { display: flex; align-items: center; justify-content: flex-end; gap: 5px; font-size: 11.5px; color: var(--faint); }
-.calc-cask .field { width: 72px; border-color: var(--gold-dim); padding: 3px 6px; font-size: 12px; background: transparent; text-align: right; }
-.calc-field .field[readonly], .cost-grid .field[readonly] { color: var(--gold); border-style: dashed; }
 .calc-field.total { border-top: 1px solid var(--gold-faint); padding-top: 7px; color: var(--ivory); }
 .calc-field.total b { text-align: right; color: var(--gold); font-weight: 600; }
 .calc-note { line-height: 1.6; }
@@ -451,16 +452,27 @@ h3.with-info, p.with-info { display: flex; }
 .price-wrap .field::placeholder { color: var(--muted); opacity: 1; }
 .expand { background: none; border: 1px solid var(--gold-faint); border-radius: var(--radius); color: var(--gold); cursor: pointer; padding: 2px 6px; font-size: 11px; }
 .mode { display: block; font-size: 10.5px; color: var(--faint); text-align: right; padding-right: 30px; }
-.cost-row td { background: var(--claim-bg); }
-.cost-grid { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.cost-grid label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
-.cost-grid .field { width: 80px; }
 .del { padding: 1px 8px; }
+.add-row td { padding-top: 8px; border: 0; }
+
+/* Cost dialog: liquid cost is one of two choices, then preset other costs */
+dialog.compact { width: min(420px, 94vw); height: fit-content; max-height: 90dvh; }
+dialog.compact .dlg { grid-template-rows: auto 1fr; }
+dialog.compact .dlg-head h2 { font-size: 19px; }
+dialog.compact .dlg-body { gap: 9px; }
+dialog.compact .calc-field { grid-template-columns: 1fr 110px; font-size: 13px; }
+dialog.compact .btn.solid { align-self: flex-end; margin-top: 4px; padding: 6px 22px; }
+.calc-step { font-size: 12px; letter-spacing: .08em; color: var(--gold); margin-top: 4px; }
+.calc-choice { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+.calc-choice span { white-space: nowrap; }
+.calc-choice input[type="radio"] { accent-color: var(--gold); margin: 0; }
+.calc-choice .field { flex: 1; min-width: 0; border-color: var(--gold-dim); padding: 4px 7px; font-size: 13px; background: transparent; text-align: right; }
+.calc-choice .field:disabled { opacity: .35; }
 
 @page landscape { size: A4 landscape; margin: 10mm; }
 @media print {
   .calc { display: block; padding: 0; }
-  .calc-side, .calc-head .tabs, .calc-head .btn, .calc-toggle, #add, .calc-main .toolbar, .expand, .del, .cost-row { display: none !important; }
+  .calc-side, .calc-head .tabs, .calc-head .btn, .calc-toggle, .add-row, .calc-main .toolbar, .expand, .del { display: none !important; }
   .calc-main { display: block; }
   .calc-main .print-only { font-size: 11px; }
   .calc .table-wrap { overflow: visible; border: 0; }
@@ -486,13 +498,17 @@ h3.with-info, p.with-info { display: flex; }
   .calc-main .table-wrap { max-height: none; overflow: visible; border: 0; }
   .calc-table, .calc-table tbody, .calc-table tfoot { display: block; }
   .calc-table thead { display: none; }
-  .calc-table tr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; position: relative;
+  .calc-table tr { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px 10px; position: relative;
     border: 1px solid var(--gold-faint); border-radius: var(--radius); padding: 12px; margin-bottom: 10px; background: var(--bg-raise); }
   .calc-table td { display: block; padding: 0; border: 0; white-space: normal; background: none; position: static; }
   .calc-table td:empty { display: none; }
   .calc-table td[data-label]::before { content: attr(data-label); display: block; font-size: 11px; color: var(--faint); margin-bottom: 3px; }
-  .calc-table .c-name { grid-column: 1 / -1; padding-right: 40px; }
-  .calc-table .c-name .field { width: 100%; min-width: 0; font-size: 15px; }
+  .calc-table tbody .c-name { grid-column: span 5; }
+  .calc-table tbody .c-name .field { width: 100%; min-width: 0; }
+  .calc-table tbody .c-in { grid-column: span 2; }
+  .calc-table tbody .c-in:nth-child(2) { grid-column: span 3; }
+  .calc-table tbody .price-cell { grid-column: span 4; }
+  .calc-table tfoot .c-name { grid-column: 1 / -1; }
   .calc-table .c-in .field, .calc-table td:nth-child(n) .field { width: 100%; }
   .price-wrap .field { width: auto; flex: 1; min-width: 0; }
   .mode { text-align: left; padding-right: 0; margin-top: 2px; }
@@ -501,15 +517,12 @@ h3.with-info, p.with-info { display: flex; }
   .calc-table td.out::before, .calc-table tfoot td[data-label]::before { margin: 0; font-size: 12px; }
   .calc-table td.out:first-of-type { margin-top: 4px; }
   .calc-table .c-totalPer, .calc-table .c-total { color: var(--gold); font-weight: 600; }
-  .calc-table .c-del { position: absolute; top: 12px; right: 12px; }
-  .calc-table .del { padding: 4px 10px; }
-  .calc-table tr.cost-row { display: block; margin-top: -10px; border-top: 0; border-radius: 0 0 var(--radius) var(--radius); background: var(--claim-bg); }
-  .cost-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
-  .cost-grid .note, .cost-grid .calc-cask { grid-column: 1 / -1; }
-  .cost-grid .calc-cask { justify-content: flex-start; }
-  .cost-grid .calc-cask .field { flex: 1; min-width: 0; width: auto; }
-  .cost-grid label { flex-direction: column; align-items: stretch; gap: 3px; }
-  .cost-grid .field { width: 100%; }
+  .calc-table .c-del { position: absolute; top: 6px; right: 10px; }
+  .calc-table .del { padding: 0 8px; font-size: 13px; }
+  .calc-table tr.add-row { display: block; border: 0; padding: 0; background: none; }
+  .calc-table tr.add-row .btn { width: 100%; padding: 8px; }
+  dialog.compact { width: 94vw; height: fit-content; max-height: 90dvh; margin: auto; border: 1px solid var(--gold-dim); border-radius: var(--radius); }
+  dialog.compact .dlg { height: auto; max-height: 90dvh; }
   .calc-table tfoot tr { border-color: var(--gold-dim); }
   .calc-table tfoot .c-name { font-family: var(--serif); font-size: 18px; color: var(--gold); }
   .calc-table tfoot td { position: static; font-weight: 600; }

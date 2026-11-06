@@ -45,12 +45,17 @@
       <section class="calc-main">
         <p class="print-only" id="print-params"></p>
         <div class="table-wrap"><table class="calc-table" id="table"></table></div>
-        <div class="toolbar"><button class="btn small" id="add" type="button">＋ 加一行</button>
-          <span class="note">即計即用，唔會儲存；重新整理會回到預設值。</span></div>
+        <div class="toolbar"><span class="note">即計即用，唔會儲存；重新整理會回到預設值。</span></div>
       </section>
     </div>
   </div>
 </div>
+<dialog id="cost-dlg" class="compact" aria-labelledby="cost-title">
+  <form method="dialog" class="dlg">
+    <div class="dlg-head"><h2 id="cost-title"></h2><button class="close" type="submit" aria-label="Close">×</button></div>
+    <div class="dlg-body" id="cost-body"></div>
+  </form>
+</dialog>
 <script type="module" src="/js/calculator.js"></script>
 </body>
 </html>
