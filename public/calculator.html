@@ -21,31 +21,32 @@
   <header class="topbar">
     <a class="brand" href="/"><span class="word">WHISKY TODAY</span><span class="rule"></span></a>
     <nav class="topnav">
-      <a href="/">每日情報</a>
-      <a href="/whisky">酒款</a>
-      <a href="/trends">市場趨勢</a>
-      <a href="/calculator" aria-current="page">計算器</a>
+      <a href="/" data-i18n="nav.news">每日情報</a>
+      <a href="/whisky" data-i18n="nav.whisky">酒款</a>
+      <a href="/trends" data-i18n="nav.trends">市場趨勢</a>
+      <a href="/calculator" aria-current="page" data-i18n="nav.calc">計算器</a>
     </nav>
     <span class="spacer"></span>
+    <button class="lang" id="lang" type="button">EN</button>
     <button class="theme" id="theme" type="button"></button>
   </header>
 
   <div class="calc">
     <div class="calc-head">
-      <h1>進口成本計算器</h1>
+      <h1 data-i18n="calc.title">進口成本計算器</h1>
       <div class="tabs" role="tablist" id="regions"></div>
       <span class="spacer"></span>
-      <label class="calc-toggle"><input type="checkbox" class="switch" id="show-gbp"> 顯示含稅價（GBP）<span class="en">Show incl. tax (GBP)</span></label>
-      <button class="btn small" id="reset-all" type="button">全部回復預設<span class="en">Reset all</span></button>
-      <button class="btn small" id="csv" type="button">下載 CSV<span class="en">Download CSV</span></button>
-      <button class="btn small" id="print" type="button">列印<span class="en">Print</span></button>
+      <label class="calc-toggle"><input type="checkbox" class="switch" id="show-gbp"> <span data-i18n="calc.showGbp">顯示含稅價（GBP）</span></label>
+      <button class="btn small" id="reset-all" type="button" data-i18n="calc.reset">全部回復預設</button>
+      <button class="btn small" id="csv" type="button" data-i18n="calc.csv">下載 CSV</button>
+      <button class="btn small" id="print" type="button" data-i18n="calc.print">列印</button>
     </div>
     <div class="calc-body">
       <aside class="calc-side" id="side"></aside>
       <section class="calc-main">
         <p class="print-only" id="print-params"></p>
         <div class="table-wrap"><table class="calc-table" id="table"></table></div>
-        <div class="toolbar"><span class="note">即計即用，唔會儲存；重新整理會回到預設值。</span></div>
+        <div class="toolbar"><span class="note" data-i18n="calc.note">即計即用，唔會儲存；重新整理會回到預設值。</span></div>
       </section>
     </div>
   </div>

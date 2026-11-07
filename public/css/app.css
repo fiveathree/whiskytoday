@@ -56,7 +56,7 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 500; margin: 0; letter-spac
 .hidden { display: none !important; }
 
 /* App shell: header + body, always one screen */
-.shell { height: 100dvh; display: grid; grid-template-rows: auto 1fr; overflow: hidden; }
+.shell { height: 100dvh; display: grid; grid-template-rows: auto 1fr; grid-template-columns: minmax(0, 1fr); overflow: hidden; }
 .topbar {
   display: flex; align-items: center; gap: 24px; padding: 14px 28px;
   border-bottom: 1px solid var(--gold-faint);
@@ -421,7 +421,6 @@ h3.with-info, p.with-info { display: flex; }
 .calc-head h1 { font-size: 24px; }
 .calc-head .spacer { flex: 1; }
 .calc-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
-.calc-head .en { margin-left: 4px; opacity: .7; }
 .calc-body { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 18px; min-height: 0; }
 .calc-side { overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
 .calc-box { border: 1px solid var(--gold-faint); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 7px; }
