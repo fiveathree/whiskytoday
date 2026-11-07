@@ -21,7 +21,7 @@ export async function buildDigest(env, sinceIso) {
 
 export function renderDigest(sections, dateLabel, siteUrl) {
   const text = [`Whisky Today 每日簡報 ${dateLabel}`, ''];
-  let html = `<div style="font-family:Georgia,'Noto Serif TC',serif;background:#0E0D0C;color:#F3EDE2;padding:24px;max-width:640px">
+  let html = `<div style="font-family:'Noto Serif','Noto Serif TC',Georgia,serif;background:#0E0D0C;color:#F3EDE2;padding:24px;max-width:640px">
 <div style="letter-spacing:.3em;color:#C9A96E;font-size:14px">WHISKY TODAY</div>
 <div style="border-top:1px solid rgba(201,169,110,.4);margin:8px 0 16px"></div>
 <div style="font-size:13px;color:#b8b0a3">每日簡報 · ${esc(dateLabel)}</div>`;
@@ -33,7 +33,7 @@ export function renderDigest(sections, dateLabel, siteUrl) {
       text.push('今日冇相關消息。');
     }
     for (const it of s.items) {
-      html += `<p style="margin:0 0 12px;font-family:Arial,'Noto Sans TC',sans-serif;font-size:14px;line-height:1.5">
+      html += `<p style="margin:0 0 12px;font-family:'Noto Sans','Noto Sans TC',Arial,sans-serif;font-size:14px;line-height:1.5">
 <a href="${esc(it.canonical_url)}" style="color:#F3EDE2;text-decoration:none;font-weight:bold">${esc(it.title_zh)}</a><br>
 <span style="color:#b8b0a3">${esc(it.summary_zh)}</span></p>`;
       text.push(`- ${it.title_zh}`, `  ${it.summary_zh}`, `  ${it.canonical_url}`);

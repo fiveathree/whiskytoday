@@ -12,7 +12,7 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&family=Noto+Sans+TC:wght@400;500&family=Noto+Serif+TC:wght@500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;600&family=Noto+Serif:ital,wght@0,500;0,600;1,600&family=Noto+Serif+TC:wght@500;600&display=swap">
 <link rel="stylesheet" href="/css/app.css">
 <script>try{if(localStorage.getItem("wt-theme")==="dark")delete document.documentElement.dataset.theme}catch(e){}</script>
 </head>
@@ -35,10 +35,10 @@
       <h1>進口成本計算器</h1>
       <div class="tabs" role="tablist" id="regions"></div>
       <span class="spacer"></span>
-      <label class="calc-toggle"><input type="checkbox" class="switch" id="show-gbp"> 顯示含稅價（GBP）</label>
-      <button class="btn small" id="reset-all" type="button">全部回復預設</button>
-      <button class="btn small" id="csv" type="button">下載 CSV</button>
-      <button class="btn small" id="print" type="button">列印</button>
+      <label class="calc-toggle"><input type="checkbox" class="switch" id="show-gbp"> 顯示含稅價（GBP）<span class="en">Show incl. tax (GBP)</span></label>
+      <button class="btn small" id="reset-all" type="button">全部回復預設<span class="en">Reset all</span></button>
+      <button class="btn small" id="csv" type="button">下載 CSV<span class="en">Download CSV</span></button>
+      <button class="btn small" id="print" type="button">列印<span class="en">Print</span></button>
     </div>
     <div class="calc-body">
       <aside class="calc-side" id="side"></aside>

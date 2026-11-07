@@ -16,8 +16,8 @@
   --claim-bg: rgba(201, 169, 110, .07);
   --ai-bg: rgba(42, 15, 18, .65);
   --radius: 3px;
-  --serif: 'Cormorant Garamond', 'Noto Serif TC', Georgia, serif;
-  --sans: 'Inter', 'Noto Sans TC', system-ui, sans-serif;
+  --serif: 'Noto Serif', 'Noto Serif TC', serif;
+  --sans: 'Noto Sans', 'Noto Sans TC', sans-serif;
   color-scheme: dark;
 }
 
@@ -421,6 +421,7 @@ h3.with-info, p.with-info { display: flex; }
 .calc-head h1 { font-size: 24px; }
 .calc-head .spacer { flex: 1; }
 .calc-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.calc-head .en { margin-left: 4px; opacity: .7; }
 .calc-body { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 18px; min-height: 0; }
 .calc-side { overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
 .calc-box { border: 1px solid var(--gold-faint); border-radius: var(--radius); padding: 12px 14px; display: flex; flex-direction: column; gap: 7px; }
